@@ -83,7 +83,7 @@ class FarmerDashboardScreen extends StatelessWidget {
                 children: [
                   const CircleAvatar(
                     radius: 30,
-                    backgroundImage: AssetImage('assets/farmer_avatar.jpg'),
+                    backgroundImage: AssetImage('assets/farm1.jpeg'),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -207,14 +207,14 @@ class FarmerDashboardScreen extends StatelessWidget {
           const SizedBox(height: 8),
           const FarmerOrderCard(
             orderId: '#CD-1234',
-            customer: 'John M.',
+            customer: 'Nfon AShi.',
             items: 'Tomatoes (2kg), Onions (1kg)',
             status: 'Processing',
             date: 'Today, 10:30 AM',
           ),
           const FarmerOrderCard(
             orderId: '#CD-1233',
-            customer: 'Sarah K.',
+            customer: 'Ngwa Joseph.',
             items: 'Bananas (3 bunches)',
             status: 'Shipped',
             date: 'Yesterday, 2:15 PM',
@@ -424,9 +424,9 @@ class FarmerProductsScreen extends StatelessWidget {
           SliverAppBar(
             expandedHeight: 150,
             flexibleSpace: FlexibleSpaceBar(
-              title: const Text('My Products'),
+              title: const Text('My Products', style: TextStyle(color: Colors.white),),
               background: Image.asset(
-                'assets/farm_products.jpg',
+                'assets/farm_products.jpeg',
                 fit: BoxFit.cover,
               ),
             ),
@@ -472,14 +472,14 @@ class FarmerProductsScreen extends StatelessWidget {
                     name: 'Organic Bananas',
                     price: 'XAF 300/bunch',
                     stock: '15 bunches',
-                    image: 'assets/bananas.jpg',
+                    image: 'assets/bananas.jpeg',
                     rating: 4.2,
                   ),
                   const FarmerProductCard(
                     name: 'Green Beans',
                     price: 'XAF 700/kg',
                     stock: '8 kg',
-                    image: 'assets/beans.jpg',
+                    image: 'assets/beans.png',
                     rating: 4.7,
                   ),
                 ],
@@ -885,21 +885,21 @@ class FarmerOrdersScreen extends StatelessWidget {
                 children: const [
                   FarmerOrderCard(
                     orderId: '#CD-1234',
-                    customer: 'John M.',
+                    customer: 'Nfon Ashi.',
                     items: 'Tomatoes (2kg), Onions (1kg)',
                     status: 'Processing',
                     date: 'Today, 10:30 AM',
                   ),
                   FarmerOrderCard(
                     orderId: '#CD-1233',
-                    customer: 'Sarah K.',
+                    customer: 'Ngwa Joseph',
                     items: 'Bananas (3 bunches)',
                     status: 'Shipped',
                     date: 'Yesterday, 2:15 PM',
                   ),
                   FarmerOrderCard(
                     orderId: '#CD-1232',
-                    customer: 'Michael T.',
+                    customer: 'Neba James',
                     items: 'Carrots (1kg), Cabbage (2 heads)',
                     status: 'Delivered',
                     date: '2 days ago',
@@ -914,7 +914,7 @@ class FarmerOrdersScreen extends StatelessWidget {
                 children: const [
                   FarmerOrderCard(
                     orderId: '#CD-1234',
-                    customer: 'John M.',
+                    customer: 'Nfon Ashi',
                     items: 'Tomatoes (2kg), Onions (1kg)',
                     status: 'Processing',
                     date: 'Today, 10:30 AM',
@@ -929,7 +929,7 @@ class FarmerOrdersScreen extends StatelessWidget {
                 children: const [
                   FarmerOrderCard(
                     orderId: '#CD-1233',
-                    customer: 'Sarah K.',
+                    customer: 'Ngwa Joseph',
                     items: 'Bananas (3 bunches)',
                     status: 'Shipped',
                     date: 'Yesterday, 2:15 PM',
@@ -944,7 +944,7 @@ class FarmerOrdersScreen extends StatelessWidget {
                 children: const [
                   FarmerOrderCard(
                     orderId: '#CD-1232',
-                    customer: 'Michael T.',
+                    customer: 'Neba James.',
                     items: 'Carrots (1kg), Cabbage (2 heads)',
                     status: 'Delivered',
                     date: '2 days ago',
@@ -990,7 +990,7 @@ class FarmerProfileScreen extends StatelessWidget {
         children: [
           const CircleAvatar(
             radius: 50,
-            backgroundImage: AssetImage('assets/farmer_avatar.jpg'),
+            backgroundImage: AssetImage('assets/farm1.jpeg'),
           ),
           const SizedBox(height: 16),
           const Text(

@@ -30,6 +30,7 @@ class OnboardingScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  SizedBox(height: 120,),
                   // Logo and title
                   SvgPicture.asset(
                     'assets/logo.svg',

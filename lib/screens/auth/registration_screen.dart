@@ -93,17 +93,17 @@ class LoginScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              const Text('Or login with'),
+                              const Text('............Or login with...........'),
                               const SizedBox(height: 16),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   IconButton(
-                                    icon: const Icon(FontAwesomeIcons.google),
+                                    icon: const Icon(FontAwesomeIcons.google, color: Colors.green),
                                     onPressed: () {},
                                   ),
                                   IconButton(
-                                    icon: const Icon(FontAwesomeIcons.facebook),
+                                    icon: const Icon(FontAwesomeIcons.facebook, color: Colors.blue,),
                                     onPressed: () {},
                                   ),
                                 ],

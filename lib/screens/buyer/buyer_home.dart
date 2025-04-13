@@ -133,14 +133,14 @@ class BuyerProductsScreen extends StatelessWidget {
                   name: 'Organic Bananas',
                   price: 'XAF 300/bunch',
                   farmer: 'Mbu Farm',
-                  image: 'assets/bananas.jpg',
+                  image: 'assets/bananas.jpeg',
                   rating: 4.2,
                 ),
                 ProductCard(
-                  name: 'Green Beans',
+                  name: ' Beans',
                   price: 'XAF 700/kg',
                   farmer: 'Ndi Farm',
-                  image: 'assets/beans.jpg',
+                  image: 'assets/beans.png',
                   rating: 4.7,
                 ),
               ],
@@ -158,19 +158,19 @@ class BuyerProductsScreen extends StatelessWidget {
                   name: 'Njoh Farm',
                   distance: '2.5 km',
                   products: 'Tomatoes, Peppers, Onions',
-                  image: 'assets/farm1.jpg',
+                  image: 'assets/farm1.jpeg',
                 ),
                 FarmCard(
                   name: 'Mbu Farm',
                   distance: '3.1 km',
                   products: 'Bananas, Plantains',
-                  image: 'assets/farm2.jpg',
+                  image: 'assets/farm2.jpeg',
                 ),
                 FarmCard(
                   name: 'Ndi Farm',
                   distance: '5.2 km',
                   products: 'Beans, Maize',
-                  image: 'assets/farm3.jpg',
+                  image: 'assets/farm3.jpeg',
                 ),
               ],
             ),
@@ -187,11 +187,11 @@ class BuyerProductsScreen extends StatelessWidget {
               ProductGridItem(
                 name: 'Carrots',
                 price: 'XAF 600/kg',
-                image: 'assets/carrots.jpg'),
+                image: 'assets/carrots.jpeg'),
               ProductGridItem(
                 name: 'Cabbage',
                 price: 'XAF 800/head',
-                image: 'assets/cabbage.jpg'),
+                image: 'assets/cabbage.jpeg'),
               ProductGridItem(
                 name: 'Potatoes',
                 price: 'XAF 700/kg',
@@ -199,7 +199,7 @@ class BuyerProductsScreen extends StatelessWidget {
               ProductGridItem(
                 name: 'Onions',
                 price: 'XAF 900/kg',
-                image: 'assets/onions.jpg'),
+                image: 'assets/onions.jpeg'),
             ],
           ),
         ],
@@ -287,74 +287,76 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 180,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      child: Card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: Image.asset(
-                image,
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
+    return SingleChildScrollView(
+      child: Container(
+        width: 180,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        child: Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                child: Image.asset(
+                  image,
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  Text(
-                    price,
-                    style: TextStyle(
-                      color: Theme.of(context).primaryColor,
-                      fontWeight: FontWeight.bold,
+                    Text(
+                      price,
+                      style: TextStyle(
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  Text(
-                    farmer,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
+                    Text(
+                      farmer,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.star, color: Colors.amber, size: 16),
-                      Text(rating.toString()),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.favorite_border, size: 20),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.star, color: Colors.amber, size: 16),
+                        Text(rating.toString()),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.favorite_border, size: 20),
+                          onPressed: () {},
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                        ),
                         onPressed: () {},
+                        child: const Text('Add to Cart'),
                       ),
-                    ],
-                  ),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                      ),
-                      onPressed: () {},
-                      child: const Text('Add to Cart'),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -377,61 +379,64 @@ class FarmCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 200,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      child: Card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: Image.asset(
-                image,
-                height: 80,
-                width: double.infinity,
-                fit: BoxFit.cover,
+    return SingleChildScrollView(
+      child: Container(
+        width: 200,
+        
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        child: Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                child: Image.asset(
+                  image,
+                  height: 80,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  Text(
-                    distance,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
+                    Text(
+                      distance,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    products,
-                    style: const TextStyle(
-                      fontSize: 12,
+                    const SizedBox(height: 4),
+                    Text(
+                      products,
+                      style: const TextStyle(
+                        fontSize: 12,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () {},
-                      child: const Text('View Products'),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {},
+                        child: const Text('View Products'),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -525,13 +530,13 @@ class BuyerCartScreen extends StatelessWidget {
             name: 'Organic Bananas',
             price: 'XAF 300',
             quantity: 1,
-            image: 'assets/bananas.jpg',
+            image: 'assets/bananas.jpeg',
           ),
           const CartItem(
-            name: 'Green Beans',
+            name: ' Beans',
             price: 'XAF 700',
             quantity: 3,
-            image: 'assets/beans.jpg',
+            image: 'assets/beans.png',
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -702,7 +707,7 @@ class CheckoutScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Home'),
-                    const Text('123 Main Street, Bamenda'),
+                    const Text('Mile 2 , Bamenda'),
                     const SizedBox(height: 8),
                     OutlinedButton(
                       onPressed: () {},
@@ -885,6 +890,14 @@ class OrderConfirmationScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
+                '+ 2,347 Points Earned',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
                 'Your order has been received and is being processed. You will receive a confirmation message shortly.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -934,33 +947,33 @@ class BuyerLeaderboardScreen extends StatelessWidget {
           const SizedBox(height: 16),
           const LeaderboardCard(
             rank: 1,
-            name: 'John M.',
+            name: 'Nfon Ashi(You)',
             points: 1250,
-            avatar: 'assets/avatar1.jpg',
+            avatar: 'assets/Ellipse 7.png',
           ),
           const LeaderboardCard(
             rank: 2,
-            name: 'Sarah K.',
+            name: 'Ngwa Joseph.',
             points: 980,
-            avatar: 'assets/avatar2.jpg',
+            avatar: 'assets/Ellipse 7.png',
           ),
           const LeaderboardCard(
             rank: 3,
-            name: 'Michael T.',
+            name: 'Neba James.',
             points: 870,
-            avatar: 'assets/avatar3.jpg',
+            avatar: 'assets/Ellipse 7.png',
           ),
           const LeaderboardCard(
             rank: 4,
-            name: 'Grace L.',
+            name: 'Ndoh Peter.',
             points: 750,
-            avatar: 'assets/avatar4.jpg',
+            avatar: 'assets/Ellipse 7.png',
           ),
           const LeaderboardCard(
             rank: 5,
-            name: 'Paul N.',
+            name: 'Afuh Joy.',
             points: 680,
-            avatar: 'assets/avatar5.jpg',
+            avatar: 'assets/Ellipse 7.png',
           ),
           const SizedBox(height: 24),
           const Text(
@@ -1107,11 +1120,11 @@ class BuyerProfileScreen extends StatelessWidget {
         children: [
           const CircleAvatar(
             radius: 50,
-            backgroundImage: AssetImage('assets/avatar.jpg'),
+            backgroundImage: AssetImage('assets/Ellipse 7.png'),
           ),
           const SizedBox(height: 16),
           const Text(
-            'John M.',
+            'Nfon Ashi',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
