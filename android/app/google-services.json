@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "159314935593",
+    "project_id": "chopdirect-bbdb5",
+    "storage_bucket": "chopdirect-bbdb5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:159314935593:android:603cc9c1de188cdbe60138",
+        "android_client_info": {
+          "package_name": "com.traitz.chopdirect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAELjbXchy9VBwO6yruxTlBs2S-2nHEJRc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
