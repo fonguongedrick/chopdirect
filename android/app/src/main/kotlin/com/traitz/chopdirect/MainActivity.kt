@@ -1,4 +1,4 @@
-package com.example.chopdirect
+package com.traitz.chopdirect
 
 import io.flutter.embedding.android.FlutterActivity
 
