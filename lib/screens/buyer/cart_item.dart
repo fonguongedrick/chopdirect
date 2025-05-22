@@ -5,6 +5,7 @@ class CartItem extends StatelessWidget {
   final String price;
   final int quantity;
   final String image;
+  final Function(int) onUpdateQuantity;
 
   const CartItem({
     super.key,
@@ -12,6 +13,7 @@ class CartItem extends StatelessWidget {
     required this.price,
     required this.quantity,
     required this.image,
+    required this.onUpdateQuantity,
   });
 
   @override
@@ -36,30 +38,23 @@ class CartItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
                   Text(price),
                   Row(
                     children: [
                       IconButton(
                         icon: const Icon(Icons.remove),
-                        onPressed: () {},
+                        onPressed: () => onUpdateQuantity(-1),
                       ),
                       Text(quantity.toString()),
                       IconButton(
                         icon: const Icon(Icons.add),
-                        onPressed: () {},
+                        onPressed: () => onUpdateQuantity(1),
                       ),
                       const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        color: Colors.red,
-                        onPressed: () {},
-                      ),
+                      GestureDetector(
+                        onTap: () => onUpdateQuantity(-quantity),
+                          child: Image.asset("assets/delete.png",))
                     ],
                   ),
                 ],

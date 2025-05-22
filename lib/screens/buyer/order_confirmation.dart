@@ -1,3 +1,4 @@
+import 'package:chopdirect/screens/buyer/buyer_home.dart';
 import 'package:flutter/material.dart';
 
 class OrderConfirmationScreen extends StatelessWidget {
@@ -47,7 +48,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.popUntil(context, (route) => route.isFirst);
+                    Navigator.push(context, MaterialPageRoute(builder: (context)=>BuyerHomeScreen()));
                   },
                   child: const Text('Back to Home'),
                 ),

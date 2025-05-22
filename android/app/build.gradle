@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.traitz.chopdirect" // Update to your package name
 
-    compileSdk = 34 // Specify the compileSdk version directly
+    compileSdk = 35 // Specify the compileSdk version directly
 
     ndkVersion = flutter.ndkVersion
 
