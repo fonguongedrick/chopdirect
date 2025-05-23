@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class ProductGridItem extends StatelessWidget {
@@ -11,6 +13,24 @@ class ProductGridItem extends StatelessWidget {
     required this.price,
     required this.image,
   });
+
+  void addToCart() async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      print("User not logged in!");
+      return;
+    }
+
+    FirebaseFirestore.instance.collection("cart").doc("${currentUser.email}_$name").set({
+      "userId": currentUser.email,
+      "name": name,
+      "price": price,
+      "imageUrl": image,
+      "quantity": 1,  // Default quantity
+    });
+
+    print("$name added to cart!");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,10 +74,10 @@ class ProductGridItem extends StatelessWidget {
                       onPressed: () {},
                     ),
                     const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.shopping_cart, size: 20),
-                      onPressed: () {},
-                    ),
+                    GestureDetector(
+                      onTap: addToCart,
+                        child: Image.asset("assets/cart.png")),
+
                   ],
                 ),
               ],

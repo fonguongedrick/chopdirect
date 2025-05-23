@@ -1,96 +1,119 @@
-import 'package:chopdirect/screens/buyer/cart_item.dart';
 import 'package:chopdirect/screens/buyer/checkout.dart';
+import 'package:chopdirect/screens/buyer/payment_method.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class BuyerCartScreen extends StatelessWidget {
-  const BuyerCartScreen({super.key});
+import 'cart_item.dart';
+
+class CartScreen extends StatelessWidget {
+  const CartScreen({super.key});
+
+  void updateQuantity(String name, int currentQuantity, int change) async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    DocumentReference itemRef = FirebaseFirestore.instance.collection("cart")
+        .doc("${currentUser.email}_$name");
+
+    if (currentQuantity + change > 0) {
+      await itemRef.update({"quantity": currentQuantity + change});
+    } else {
+      await itemRef.delete();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          const CartItem(
-            name: 'Fresh Tomatoes',
-            price: 'XAF 500',
-            quantity: 2,
-            image: 'assets/tomatoes.jpg',
-          ),
-          const CartItem(
-            name: 'Organic Bananas',
-            price: 'XAF 300',
-            quantity: 1,
-            image: 'assets/bananas.jpeg',
-          ),
-          const CartItem(
-            name: ' Beans',
-            price: 'XAF 700',
-            quantity: 3,
-            image: 'assets/beans.png',
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      return Scaffold(
+        body: Center(child: Text("Please log in to view your cart.")),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Your Cart"),
+      ),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance.collection("cart")
+            .where("userId", isEqualTo: currentUser.email)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text("Error loading cart: ${snapshot.error}"));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text("Your cart is empty."));
+          }
+
+          List<QueryDocumentSnapshot<Map<String, dynamic>>> cartItems = snapshot.data!.docs;
+
+          // Calculate total price & total quantity
+          double totalPrice = 0;
+          int totalQuantity = 0;
+          for (var doc in cartItems) {
+            Map<String, dynamic> item = doc.data();
+            String cleanPrice = item["price"].replaceAll("XAF", "").replaceAll("/kg", "").trim();
+            totalPrice += double.parse(cleanPrice) * item["quantity"];
+            totalQuantity += item["quantity"] as int;
+          }
+
+          return Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  children: cartItems.map((doc) {
+                    Map<String, dynamic> item = doc.data();
+                    return CartItem(
+                      name: item["name"],
+                      price: item["price"],
+                      quantity: item["quantity"],
+                      image: item["imageUrl"],
+                      onUpdateQuantity: (change) => updateQuantity(item["name"], item["quantity"], change),
+                    );
+                  }).toList(),
+                ),
+              ),
+
+              // Total Price & Checkout Button
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   children: [
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Subtotal'),
-                        Text('XAF 2,600'),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Delivery'),
-                        Text('XAF 500'),
-                      ],
-                    ),
-                    const Divider(),
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Total',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          'XAF 3,100',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
+                    Text("Total Items: $totalQuantity", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text("Total Price: XAF ${totalPrice.toStringAsFixed(2)}", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
+                    const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CheckoutScreen(),
-                            ),
+                          print("Proceeding to checkout...");
+                          Navigator.push(context, MaterialPageRoute(builder: (context)=>
+                              PaymentMethod(subtotal: totalPrice,)
+                            //   CheckoutScreen(
+                            // subtotal: totalPrice,
+                            // )
+                           )
                           );
                         },
-                        child: const Text('Proceed to Checkout'),
+                        child: const Text("Checkout"),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

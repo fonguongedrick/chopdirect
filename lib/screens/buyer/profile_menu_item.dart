@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class ProfileMenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
+  final void Function()? onTap;
 
   const ProfileMenuItem({
     super.key,
     required this.icon,
     required this.title,
+    this.onTap
   });
 
   @override
@@ -18,7 +20,7 @@ class ProfileMenuItem extends StatelessWidget {
         leading: Icon(icon, color: Theme.of(context).primaryColor),
         title: Text(title),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () {},
+        onTap: onTap,
       ),
     );
   }
