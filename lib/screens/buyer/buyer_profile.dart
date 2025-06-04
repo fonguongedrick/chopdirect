@@ -1,3 +1,4 @@
+import 'package:chopdirect/screens/buyer/buyer_order_history.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +7,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 class BuyerProfileScreen extends StatefulWidget {
-  const BuyerProfileScreen({super.key});
+  const BuyerProfileScreen({Key? key}) : super(key: key);
 
   @override
   State<BuyerProfileScreen> createState() => _BuyerProfileScreenState();
@@ -14,31 +15,9 @@ class BuyerProfileScreen extends StatefulWidget {
 
 class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
   final User? currentUser = FirebaseAuth.instance.currentUser;
+  String userLocation = "Fetching location...";
 
-   String userLocation = "Fetching location...";
-
-  Future<DocumentSnapshot<Map<String, dynamic>>> getUserDetails() async {
-    if (currentUser == null) {
-      return Future.error("User not logged in");
-    }
-    String? userId = currentUser?.uid;
-    if(userId == null){
-      return Future.error("User not logged in");
-    }
-    QuerySnapshot<Map<String, dynamic>> querySnapshot = await FirebaseFirestore.instance
-        .collection("users_chopdirect")
-        .where("userId", isEqualTo: userId)
-        .limit(1)
-        .get();
-
-    if (querySnapshot.docs.isEmpty) {
-      return Future.error("No user data found!");
-    }
-
-    return querySnapshot.docs.first;
-  }
-
-  //to get user location
+  // Function to get user's current location using geolocator and geocoding
   Future<void> getUserLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -47,9 +26,11 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         setState(() => userLocation = "Location permission denied");
         return;
       }
@@ -58,10 +39,11 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
     try {
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit: Duration(seconds: 10), // ✅ Timeout to prevent indefinite waiting
+        timeLimit: const Duration(seconds: 10),
       );
 
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      List<Placemark> placemarks =
+      await placemarkFromCoordinates(position.latitude, position.longitude);
 
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
@@ -73,6 +55,7 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
       setState(() => userLocation = "Error retrieving location: $e");
     }
   }
+
   @override
   void initState() {
     super.initState();
@@ -81,30 +64,71 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Ensure that the user is logged in.
+    if (currentUser == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Profile")),
+        body: const Center(child: Text("User not logged in.")),
+      );
+    }
+
+    // Use a StreamBuilder with a query since we're using auto-generated document IDs.
     return Scaffold(
       appBar: AppBar(
-        leading: Text(""),
-        title: Text("Profile",
+        leading: Container(), // Empty container to remove the default back button.
+        title: const Text(
+          "Profile",
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 20,
-          ),),
+          ),
+        ),
       ),
-      body: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        future: getUserDetails(),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection("users_chopdirect")
+            .where("userId", isEqualTo: currentUser!.uid)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text("ERROR: ${snapshot.error}"));
-          } else if (!snapshot.hasData || !snapshot.data!.exists) {
+          } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(child: Text("No user data available."));
           }
 
-          Map<String, dynamic>? user = snapshot.data?.data();
-          if (user == null) {
-            return const Center(child: Text("User data is missing."));
+          // Retrieve the first matching document.
+          Map<String, dynamic> user = snapshot.data!.docs.first.data();
+          int loyaltyPoints = user["loyaltyPoints"] ?? 0;
+
+          // Level thresholds.
+          const int silverThreshold = 500;
+          const int goldenThreshold = 5000;
+
+          String currentLevel;
+          double progressValue; // Value for the LinearProgressIndicator (0.0 to 1.0)
+          String progressLabel; // Text to show progress within the current level
+
+          if (loyaltyPoints < silverThreshold) {
+            // Silver level: progress from 0 to 500 points.
+            currentLevel = "Silver Farmer";
+            progressValue = loyaltyPoints / silverThreshold;
+            int progressPercent = (progressValue * 100).round();
+            progressLabel = "$progressPercent% progress";
+          } else if (loyaltyPoints < goldenThreshold) {
+            // Golden level: reset progress starting at 500.
+            currentLevel = "Golden Farmer";
+            int pointsForGolden = goldenThreshold - silverThreshold; // 4500 points required.
+            progressValue = (loyaltyPoints - silverThreshold) / pointsForGolden;
+            int progressPercent = (progressValue * 100).round();
+            progressLabel = "$progressPercent% progress";
+          } else {
+            // Special Buyer: maximum level reached.
+            currentLevel = "Special Buyer";
+            progressValue = 1.0;
+            progressLabel = "Max level achieved";
           }
 
           return SingleChildScrollView(
@@ -126,40 +150,50 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                 Text(userLocation),
                 const SizedBox(height: 24),
 
-                // Loyalty Points Card
+                // Loyalty Points Card using dynamic data from Firestore.
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        const Row(
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Loyalty Points'),
-                            Text('420', style: TextStyle(fontWeight: FontWeight.bold)),
+                            const Text('Loyalty Points'),
+                            Text(
+                              "$loyaltyPoints",
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ],
                         ),
                         const Divider(),
-                        const Row(
+                           Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('Current Level'),
-                            Text('Silver Farmer', style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text(
+                              currentLevel,
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ],
                         ),
                         const Divider(),
                         LinearProgressIndicator(
-                          value: 0.6,
-                          backgroundColor: Colors.grey[200],
+                          value: progressValue,
+                          backgroundColor: Colors.grey,
                           color: Theme.of(context).primaryColor,
                         ),
                         const SizedBox(height: 8),
-                        const Text('60% to next level'),
+                        Center(
+                          child: Text(progressLabel)
+                        ),
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              // Implement redeem points functionality here.
+                            },
                             child: const Text('Redeem Points'),
                           ),
                         ),
@@ -169,27 +203,42 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Profile Menu Items
-                 ProfileMenuItem(
-                    icon: Icons.person, title: 'Edit Profile',
-                  onTap: (){
-                      Navigator.pushNamed(context, "/editProfile");
+                // Profile Menu Items.
+                ProfileMenuItem(
+                  icon: Icons.person,
+                  title: 'Edit Profile',
+                  onTap: () async {
+                    final result = await Navigator.pushNamed(context, "/editProfile");
+                    if (result == true) {
+                      setState(() {});
+                    }
                   },
                 ),
                 const ProfileMenuItem(icon: Icons.location_on, title: 'Addresses'),
                 const ProfileMenuItem(icon: Icons.credit_card, title: 'Payment Methods'),
-                const ProfileMenuItem(icon: Icons.history, title: 'Order History'),
+                ProfileMenuItem(
+                  icon: Icons.history,
+                  title: 'Order History',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const BuyerOrderHistory(),
+                    ),
+                  ),
+                ),
                 const ProfileMenuItem(icon: Icons.star, title: 'My Reviews'),
                 const ProfileMenuItem(icon: Icons.people, title: 'Refer a Friend'),
                 const ProfileMenuItem(icon: Icons.help_outline, title: 'Help & Support'),
                 const ProfileMenuItem(icon: Icons.settings, title: 'Settings'),
                 const SizedBox(height: 16),
 
-                // Logout Button
+                // Logout Button.
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      // Implement log out functionality here.
+                    },
                     child: const Text('Log Out'),
                   ),
                 ),

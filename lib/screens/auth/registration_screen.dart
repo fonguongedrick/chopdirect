@@ -24,6 +24,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
 
+
   bool isLoading = false; // Loading state
 
   Future<void> _registerUser() async {
@@ -102,8 +103,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   Future<void> createUserCredentials(UserCredential? userCredential) async {
     if (userCredential != null && userCredential.user != null) {
-      await FirebaseFirestore.instance.collection("users_chopdirect").add({
-        "userId": userCredential.user!.uid, // Store Firebase UID
+      await FirebaseFirestore.instance
+          .collection("users_chopdirect")
+          .doc(userCredential.user!.uid)
+          .set({
+        "userId": userCredential.user!.uid, // Store Firebase UID (redundant but fine if needed)
         "email": userCredential.user!.email,
         "name": fullNameController.text,
         "phoneNumber": "${countryCode?.dialCode ?? "+237"}${phoneController.text}",

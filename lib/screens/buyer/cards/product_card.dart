@@ -35,7 +35,41 @@ class _ProductCardState extends State<ProductCard> {
       return;
     }
 
-    DocumentReference cartRef = FirebaseFirestore.instance.collection("cart").doc("${currentUser.email}_${widget.name}");
+    // Query all cart items for the current user.
+    QuerySnapshot cartSnapshot = await FirebaseFirestore.instance
+        .collection("cart")
+        .where("userId", isEqualTo: currentUser.email)
+        .get();
+
+    if (cartSnapshot.docs.isNotEmpty) {
+      String existingFarmer = cartSnapshot.docs.first['farmer'];
+      if (existingFarmer != widget.farmer) {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Sorry'),
+              content: const Text(
+                  'You cannot add products from a different farmer to your cart.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close the dialog.
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+        return;
+      }
+    }
+
+    // Either the cart is empty or the farmer matches; proceed to add/update the product.
+    DocumentReference cartRef = FirebaseFirestore.instance
+        .collection("cart")
+        .doc("${currentUser.email}_${widget.name}");
 
     DocumentSnapshot cartItem = await cartRef.get();
 
@@ -50,13 +84,15 @@ class _ProductCardState extends State<ProductCard> {
         "name": widget.name,
         "price": widget.price,
         "imageUrl": widget.image,
-        "quantity": 1,  // Default quantity
+        "quantity": 1, // Default quantity
+        "farmer": widget.farmer, // Store the product's farmer
       });
     }
 
     widget.updateCartBadge();
     print("${widget.name} added to cart!");
   }
+
 
 
 
@@ -130,7 +166,8 @@ class _ProductCardState extends State<ProductCard> {
                             rating: widget.rating,
                             price: widget.price,
                             farmer: widget.farmer,
-                            stock: widget.stock
+                            stock: widget.stock,
+                          updateCartBadge: widget.updateCartBadge,
                         )
                        ));
                       },

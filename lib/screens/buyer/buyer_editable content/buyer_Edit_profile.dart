@@ -118,7 +118,7 @@ import '../buyer_services/buyer_storage.dart';
        ScaffoldMessenger.of(context).showSnackBar(
          SnackBar(content: Text("Profile updated successfully!")),
        );
-       Navigator.pop(context);
+       Navigator.pop(context,true);
      }
    }
    //to saveUpdated info

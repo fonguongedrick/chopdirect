@@ -1,5 +1,8 @@
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:mesomb/mesomb.dart';
 
@@ -107,6 +110,8 @@ class _PaymentMethodState extends State<PaymentMethod> {
                   );
 
                   if (response.isTransactionSuccess()) {
+                    storeOrderInFirestore();
+                    sendOrderNotification();
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const OrderConfirmationScreen()),
@@ -116,7 +121,6 @@ class _PaymentMethodState extends State<PaymentMethod> {
                       content: Text('Payment failed, please try again'),
                     ));
                   }
-
                 },
                 //Payment Logic with MeSomB API
                 child: Text("Make Payment"),
@@ -207,6 +211,8 @@ class _PaymentMethodState extends State<PaymentMethod> {
                   );
 
                   if (response.isTransactionSuccess()) {
+                    storeOrderInFirestore();
+                    sendOrderNotification();
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const OrderConfirmationScreen()),
@@ -230,6 +236,42 @@ class _PaymentMethodState extends State<PaymentMethod> {
   }
   //Orange Payment
 
+  void sendOrderNotification() {
+    FirebaseMessaging.instance.subscribeToTopic("order_updates"); // Subscribe user to notifications
+
+    FirebaseMessaging.instance.sendMessage(
+      to: "/topics/order_updates",
+      data: {
+        "title": "Order Successful!",
+        "body": "Your order has been placed successfully.",
+      },
+    );
+
+    print("Order notification sent!");
+  }
+
+
+  void storeOrderInFirestore() async {
+    String? userId = FirebaseAuth.instance.currentUser?.uid;
+
+    // Create a reference to the orders collection
+    CollectionReference orders = FirebaseFirestore.instance.collection('orders');
+
+    // Add the order with pending status
+    await orders.add({
+      "userId": userId,
+      "status": "pending", // Changed from "Order Successful" to "pending"
+      "timestamp": FieldValue.serverTimestamp(),
+      "totalAmount": (widget.subtotal ?? 0) + deliveryFee,
+      "paymentMethod": "Mobile Money", // You can make this dynamic
+      "items": [], // Add your items array here if you have one
+      "deliveryFee": deliveryFee,
+      "subtotal": widget.subtotal ?? 0,
+    });
+
+    print("Order saved in Firestore with pending status!");
+  }
+
   @override
   void dispose() {
     super.dispose();
@@ -238,6 +280,8 @@ class _PaymentMethodState extends State<PaymentMethod> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
      body: SafeArea(
        child: Column(
@@ -258,9 +302,9 @@ class _PaymentMethodState extends State<PaymentMethod> {
            GestureDetector(
              onTap: processPaymentMTNPayment,
              child: Container(
-               margin: EdgeInsets.symmetric(horizontal: 20),
+               margin: EdgeInsets.symmetric(horizontal: screenWidth *0.05),
                   height: 83,
-                 width: double.infinity,
+                 width: screenWidth,
                  decoration: BoxDecoration(
                    color: Colors.white,
                    borderRadius: BorderRadius.circular(22),
@@ -282,7 +326,7 @@ class _PaymentMethodState extends State<PaymentMethod> {
                            child: Image.asset("assets/mtnmomo.png",scale: 2,)),
                      ),
                      SizedBox(width: 20,),
-                     Text("MTN Mobile Money",
+                     Text("MTN MoMo",
                        style: TextStyle(
                          fontWeight: FontWeight.bold,
                          fontSize: 20

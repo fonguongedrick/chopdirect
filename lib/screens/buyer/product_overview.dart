@@ -2,13 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
- class ProductOverview extends StatelessWidget {
+ class ProductOverview extends StatefulWidget {
    final String name;
    final String image;
    final double rating;
    final String price;
    final String farmer;
    final int? stock;
+   final VoidCallback updateCartBadge;
    const ProductOverview({super.key,
     required this.name,
     required this.image,
@@ -16,8 +17,14 @@ import 'package:flutter/material.dart';
     required this.price,
     required this.farmer,
     required this.stock,
+     required this.updateCartBadge
    });
 
+  @override
+  State<ProductOverview> createState() => _ProductOverviewState();
+}
+
+class _ProductOverviewState extends State<ProductOverview> {
    void addToCart() async {
      User? currentUser = FirebaseAuth.instance.currentUser;
      if (currentUser == null) {
@@ -25,15 +32,65 @@ import 'package:flutter/material.dart';
        return;
      }
 
-     FirebaseFirestore.instance.collection("cart").doc("${currentUser.email}_$name").set({
-       "userId": currentUser.email,
-       "name": name,
-       "price": price,
-       "imageUrl": image,
-       "quantity": 1,  // Default quantity
-     });
+     // Query all cart items for the current user.
+     QuerySnapshot cartSnapshot = await FirebaseFirestore.instance
+         .collection("cart")
+         .where("userId", isEqualTo: currentUser.email)
+         .get();
 
-     print("$name added to cart!");
+     // If there are items in the cart, check the farmer field.
+     if (cartSnapshot.docs.isNotEmpty) {
+       // Get the farmer of the first product in the cart.
+       String existingFarmer = cartSnapshot.docs.first['farmer'];
+       if (existingFarmer != widget.farmer) {
+         // If the current product's farmer is different, show a dialog.
+         showDialog(
+           context: context,
+           builder: (context) {
+             return AlertDialog(
+               title: const Text('Sorry'),
+               content: const Text(
+                   'You cannot add products from a different farmer to your cart.'),
+               actions: [
+                 TextButton(
+                   onPressed: () {
+                     Navigator.of(context).pop(); // Close the dialog.
+                   },
+                   child: const Text('OK'),
+                 ),
+               ],
+             );
+           },
+         );
+         return;
+       }
+     }
+
+     // Either the cart is empty or the farmer matches; proceed to add/update the product.
+     DocumentReference cartRef = FirebaseFirestore.instance
+         .collection("cart")
+         .doc("${currentUser.email}_${widget.name}");
+
+     DocumentSnapshot cartItem = await cartRef.get();
+
+     if (cartItem.exists) {
+       int currentQuantity = cartItem["quantity"] ?? 1;
+       await cartRef.update({
+         "quantity": currentQuantity + 1,
+       });
+     } else {
+       await cartRef.set({
+         "userId": currentUser.email,
+         "name": widget.name,
+         "price": widget.price,
+         "imageUrl": widget.image,
+         "quantity": 1, // Default quantity
+         "farmer": widget.farmer, // Store the product's farmer
+       });
+     }
+
+     widget.updateCartBadge();
+     print("${widget.name} added to cart!");
    }
 
    @override
@@ -47,7 +104,7 @@ import 'package:flutter/material.dart';
                width: double.infinity,
                child: Stack(
                  children: [
-                   Image.asset(image,fit: BoxFit.cover,width: double.infinity,),
+                   Image.asset(widget.image,fit: BoxFit.cover,width: double.infinity,),
                    Positioned(
                      top:40,
                      left: 20,
@@ -72,14 +129,14 @@ import 'package:flutter/material.dart';
              padding: const EdgeInsets.only(left: 20.0,right: 20),
              child: Row(
                children: [
-                 Text(name,
+                 Text(widget.name,
                   style: TextStyle(
                     fontSize: 25,
                     fontWeight: FontWeight.bold
                   ),
                  ),
                  Spacer(),
-                 Text("From: $farmer",
+                 Text("From: ${widget.farmer}",
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold
@@ -91,7 +148,7 @@ import 'package:flutter/material.dart';
            SizedBox(height: 10,),
            Padding(
              padding: const EdgeInsets.only(left: 20.0),
-             child: Text(price,
+             child: Text(widget.price,
                style: TextStyle(
                   fontWeight: FontWeight.w600,
                  fontSize: 25
@@ -105,7 +162,7 @@ import 'package:flutter/material.dart';
                children: [
                  Icon(Icons.star,color: Colors.yellow,size: 30,),
                  SizedBox(width: 10,),
-                 Text(rating.toString(),
+                 Text(widget.rating.toString(),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold
@@ -162,4 +219,4 @@ import 'package:flutter/material.dart';
        ),
      );
    }
- }
+}
