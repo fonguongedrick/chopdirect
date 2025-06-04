@@ -47,3 +47,8 @@ flutter {
 }
 
 apply plugin: 'com.google.gms.google-services'
+
+dependencies {
+    implementation 'com.google.android.gms:play-services-safetynet:18.0.1'
+    implementation 'com.google.firebase:firebase-appcheck-playintegrity'
+}

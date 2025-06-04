@@ -3,6 +3,7 @@ import 'package:chopdirect/screens/buyer/buyer_services/buyer_storage.dart';
 import 'package:chopdirect/screens/buyer/checkout.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -14,14 +15,24 @@ import 'screens/auth/registration_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp();
+
+  // ✅ Initialize Firebase App Check
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.debug, // 👈 Use PlayIntegrity for release
+    appleProvider: AppleProvider.debug,     // 👈 Use AppleProvider.appAttest for iOS release
+  );
+
   await Hive.initFlutter();
   await Hive.openBox("cart");
+
   runApp(MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => StorageServices()),
-      ],
-      child: const ChopDirectApp()));
+    providers: [
+      ChangeNotifierProvider(create: (context) => StorageServices()),
+    ],
+    child: const ChopDirectApp(),
+  ));
 }
 
 class ChopDirectApp extends StatelessWidget {
@@ -68,12 +79,12 @@ class ChopDirectApp extends StatelessWidget {
       initialRoute: '/onboarding',
       routes: {
         '/onboarding': (context) => const OnboardingScreen(),
-        '/login': (context) =>  LoginScreen(),
+        '/login': (context) => LoginScreen(),
         '/register': (context) => const RegistrationScreen(),
         '/farmer': (context) => const FarmerHomeScreen(),
         '/buyer': (context) => const BuyerHomeScreen(),
-        "/editProfile": (context) => BuyerEditProfile(),
-        "/checkout": (context) => const CheckoutScreen()
+        '/editProfile': (context) => BuyerEditProfile(),
+        '/checkout': (context) => const CheckoutScreen(),
       },
     );
   }

@@ -1,82 +1,114 @@
-import 'package:chopdirect/screens/farmer/edit_product.dart';
 import 'package:flutter/material.dart';
 
 class FarmerProductCard extends StatelessWidget {
+  final String productId;
   final String name;
   final String price;
   final String stock;
   final String image;
   final double rating;
+  final VoidCallback onDelete;
 
   const FarmerProductCard({
     super.key,
+    required this.productId,
     required this.name,
     required this.price,
     required this.stock,
     required this.image,
     required this.rating,
+    required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                image,
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Product Image
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    image: image.isNotEmpty
+                        ? DecorationImage(
+                      image: NetworkImage(image),
+                      fit: BoxFit.cover,
+                    )
+                        : const DecorationImage(
+                      image: AssetImage('assets/default_product.png'),
+                      fit: BoxFit.cover,
                     ),
                   ),
-                  Text(price),
-                  Text('Stock: $stock'),
-                  Row(
+                ),
+                const SizedBox(width: 12),
+
+                // Product Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 16),
-                      Text(rating.toString()),
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        price,
+                        style: TextStyle(
+                          color: Colors.green[800],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Stock: $stock',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.star, color: Colors.amber, size: 16),
+                          Text(
+                            rating.toStringAsFixed(1),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
-            ),
-            PopupMenuButton(
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'edit',
-                  child: Text('Edit'),
                 ),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Text('Delete'),
+
+                // Action Buttons
+                Column(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () {
+                        // TODO: Implement edit functionality
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: onDelete,
+                    ),
+                  ],
                 ),
               ],
-              onSelected: (value) {
-                if (value == 'edit') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const EditProductScreen(),
-                    ),
-                  );
-                }
-              },
             ),
           ],
         ),
