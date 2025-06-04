@@ -204,6 +204,8 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
                       name: product["name"],
                       price: "${product["price"]}XAF",
                       image: product["imageUrl"],
+                      farmer: product["farmerId"] ?? "Unknown",
+                      updateCartBadge: incrementCartCount,
                     );
                   }).toList(),
                 );

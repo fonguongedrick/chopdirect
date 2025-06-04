@@ -1,6 +1,8 @@
+import 'package:chopdirect/api/firebase_api.dart';
 import 'package:chopdirect/screens/buyer/buyer_editable%20content/buyer_Edit_profile.dart';
 import 'package:chopdirect/screens/buyer/buyer_services/buyer_storage.dart';
 import 'package:chopdirect/screens/buyer/checkout.dart';
+import 'package:chopdirect/screens/buyer/notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
@@ -12,6 +14,8 @@ import 'screens/farmer/farmer_home.dart';
 import 'screens/buyer/buyer_home.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/registration_screen.dart';
+
+final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +30,7 @@ void main() async {
 
   await Hive.initFlutter();
   await Hive.openBox("cart");
+  await FirebaseApi().initNotification();
 
   runApp(MultiProvider(
     providers: [
@@ -41,6 +46,7 @@ class ChopDirectApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'ChopDirect',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -85,6 +91,9 @@ class ChopDirectApp extends StatelessWidget {
         '/buyer': (context) => const BuyerHomeScreen(),
         '/editProfile': (context) => BuyerEditProfile(),
         '/checkout': (context) => const CheckoutScreen(),
+        "/editProfile": (context) => BuyerEditProfile(),
+        "/checkout": (context) => const CheckoutScreen(),
+        "/notifications": (context) => const Notifications(),
       },
     );
   }
