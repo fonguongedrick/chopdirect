@@ -104,7 +104,7 @@ class _ProductOverviewState extends State<ProductOverview> {
                width: double.infinity,
                child: Stack(
                  children: [
-                   Image.asset(widget.image,fit: BoxFit.cover,width: double.infinity,),
+                   Image.network(widget.image,fit: BoxFit.cover,width: double.infinity,),
                    Positioned(
                      top:40,
                      left: 20,
@@ -136,12 +136,12 @@ class _ProductOverviewState extends State<ProductOverview> {
                   ),
                  ),
                  Spacer(),
-                 Text("From: ${widget.farmer}",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold
-                  ),
-                 )
+                 // Text("From: ${widget.farmer}",
+                 //  style: TextStyle(
+                 //    fontSize: 20,
+                 //    fontWeight: FontWeight.bold
+                 //  ),
+                 // )
                ],
              ),
            ),

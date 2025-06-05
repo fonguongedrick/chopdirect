@@ -171,7 +171,7 @@ class _ProductCardState extends State<ProductCard> {
                         )
                        ));
                       },
-                      child: Image.asset(
+                      child: Image.network(
                         widget.image,
                         height: 120,
                         width: double.infinity,

@@ -98,7 +98,7 @@ class _ProductGridItemState extends State<ProductGridItem> {
           Expanded(
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: Image.asset(
+              child: Image.network(
                 widget.image,
                 width: double.infinity,
                 fit: BoxFit.cover,
