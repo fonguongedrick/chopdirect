@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -98,10 +99,13 @@ class _ProductGridItemState extends State<ProductGridItem> {
           Expanded(
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: Image.asset(
-                widget.image,
+              child:  CachedNetworkImage(
+                imageUrl: widget.image,
+                height: 120,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                placeholder: (context, url) => Center(child: CircularProgressIndicator()), // Loading spinner
+                errorWidget: (context, url, error) => Icon(Icons.broken_image, size: 60), // Fallback icon
               ),
             ),
           ),

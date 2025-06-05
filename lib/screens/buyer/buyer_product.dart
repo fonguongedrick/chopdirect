@@ -8,11 +8,13 @@ import 'package:chopdirect/screens/buyer/section_headers.dart';
 
 import 'cards/farmers_card.dart';
 
-// Function to fetch products from Firestore
-Future<List<Map<String, dynamic>>> fetchProducts() async {
-  QuerySnapshot<Map<String, dynamic>> snapshot =
-  await FirebaseFirestore.instance.collection("products").get();
-  return snapshot.docs.map((doc) => doc.data()).toList();
+// Function to fetch products as a stream from Firestore
+Stream<List<Map<String, dynamic>>> fetchProducts() {
+  return FirebaseFirestore.instance
+      .collection('products')
+      .snapshots()
+      .map((snapshot) =>
+      snapshot.docs.map((doc) => doc.data()).toList());
 }
 
 class BuyerProductsScreen extends StatefulWidget {
@@ -24,6 +26,7 @@ class BuyerProductsScreen extends StatefulWidget {
 
 class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
   int cartItemCount = 0;
+
   void fetchCartItemCount() {
     User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
@@ -39,9 +42,8 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
         });
       }
     }, onError: (error) {
-      print("Firestore Error: $error"); // ✅ Logs errors instead of breaking UI
+      print("Firestore Error: $error");
     });
-
   }
 
   void incrementCartCount() {
@@ -60,37 +62,40 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: Text(""),
-        title: Text("CHOPDIRECT",
-         style: TextStyle(
-           color: Colors.white,
-           fontWeight: FontWeight.bold,
-           fontSize: 20,
-         ),
+        title: Text(
+          "CHOPDIRECT",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
         actions: [
           Stack(
             children: [
-              Container(
-                margin: const EdgeInsets.only(right: 20),
-                height: 40,
-                width: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 2,
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
-                    )
-                  ],
-                ),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => CartScreen()));
-                  },
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                      context, MaterialPageRoute(builder: (context) => CartScreen()
+                   )
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 20),
+                  height: 40,
+                  width: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      )
+                    ],
+                  ),
                   child: Image.asset("assets/cart.png"),
                 ),
               ),
@@ -117,44 +122,32 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
             // Search and filter
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search...',
-                    prefixIcon:Image.asset("assets/search.png"),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Colors.transparent
-                      )
-                    ),
-                      focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                              color: Colors.transparent
-                          )
-                      ),
-                    filled: true,
-                    fillColor: Color(0xffE9EAEB),
-                    suffixIcon: Image.asset("assets/filter.png")
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search...',
+                  prefixIcon: Image.asset("assets/search.png"),
+                  filled: true,
+                  fillColor: Color(0xffE9EAEB),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.transparent),
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.transparent),
+                  ),
+                  suffixIcon: Image.asset("assets/filter.png"),
                 ),
               ),
             ),
 
-            // Featured Products - Firestore Fetch
             const SectionHeader(title: 'Featured Products'),
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: fetchProducts(),
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: fetchProducts(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text("Error loading products: ${snapshot.error}"));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text("No products available"));
                 }
-
                 List<Map<String, dynamic>> products = snapshot.data!;
                 return SizedBox(
                   height: 220,
@@ -165,9 +158,9 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
                         name: product["name"],
                         price: "${product["price"]} XAF",
                         farmer: product["farmerId"] ?? "Unknown",
-                        image: product["imageUrl"],
-                        rating: product["ratings"] ?? 0.0,
-                        stock: product['stock'] ?? 00,
+                        image: product["imageUrl"] ?? "",
+                        rating: product["ratings"]?.toDouble() ?? 0.0,
+                        stock: product['stock'] ?? 0,
                         updateCartBadge: incrementCartCount,
                       );
                     }).toList(),
@@ -175,24 +168,27 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
                 );
               },
             ),
+
             const SectionHeader(title: 'Nearby Farms'),
-            SizedBox( height: 160,
-              child: ListView( scrollDirection: Axis.horizontal,
-                children: const [ FarmCard( name: 'Njoh Farm', distance: '2.5 km', products: 'Tomatoes, Peppers, Onions', image: 'assets/farm1.jpeg', ), FarmCard( name: 'Mbu Farm', distance: '3.1 km', products: 'Bananas, Plantains', image: 'assets/farm2.jpeg', ), FarmCard( name: 'Ndi Farm', distance: '5.2 km', products: 'Beans, Maize', image: 'assets/farm3.jpeg', ), ], ), ),
+            SizedBox(
+              height: 160,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: const [
+                  FarmCard(name: 'Njoh Farm', distance: '2.5 km', products: 'Tomatoes, Peppers, Onions', image: 'assets/farm1.jpeg'),
+                  FarmCard(name: 'Mbu Farm', distance: '3.1 km', products: 'Bananas, Plantains', image: 'assets/farm2.jpeg'),
+                  FarmCard(name: 'Ndi Farm', distance: '5.2 km', products: 'Beans, Maize', image: 'assets/farm3.jpeg'),
+                ],
+              ),
+            ),
 
-            // All Products - Firestore Fetch
             const SectionHeader(title: 'All Products'),
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: fetchProducts(),
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: fetchProducts(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text("Error loading products: ${snapshot.error}"));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text("No products available"));
                 }
-
                 List<Map<String, dynamic>> products = snapshot.data!;
                 return GridView.count(
                   shrinkWrap: true,
@@ -202,8 +198,8 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
                   children: products.map((product) {
                     return ProductGridItem(
                       name: product["name"],
-                      price: "${product["price"]}XAF",
-                      image: product["imageUrl"],
+                      price: "${product["price"]} XAF",
+                      image: product["imageUrl"] ?? "",
                       farmer: product["farmerId"] ?? "Unknown",
                       updateCartBadge: incrementCartCount,
                     );

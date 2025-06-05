@@ -5,7 +5,8 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.0.2'  // Update to your required version
-        classpath 'com.google.gms:google-services:4.3.15' // Add this line
+        classpath 'com.google.gms:google-services:4.3.15'
+        classpath 'com.google.firebase:firebase-appcheck-playintegrity:17.0.1'// Add this line
     }
 }
 

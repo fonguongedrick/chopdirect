@@ -2,6 +2,7 @@ import 'package:chopdirect/screens/buyer/product_overview.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProductCard extends StatefulWidget {
   final String name;
@@ -93,9 +94,6 @@ class _ProductCardState extends State<ProductCard> {
     print("${widget.name} added to cart!");
   }
 
-
-
-
   bool isFavorite = false;
 
   void toggleFavorite() async {
@@ -158,24 +156,29 @@ class _ProductCardState extends State<ProductCard> {
                 child: Stack(
                   children: [
                     GestureDetector(
-                      onTap:(){
-                        Navigator.push(context, MaterialPageRoute(builder: (context)=>
-                        ProductOverview(
-                            name: widget.name,
-                            image: widget.image,
-                            rating: widget.rating,
-                            price: widget.price,
-                            farmer: widget.farmer,
-                            stock: widget.stock,
-                          updateCartBadge: widget.updateCartBadge,
-                        )
-                       ));
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProductOverview(
+                              name: widget.name,
+                              image: widget.image,
+                              rating: widget.rating,
+                              price: widget.price,
+                              farmer: widget.farmer,
+                              stock: widget.stock,
+                              updateCartBadge: widget.updateCartBadge,
+                            ),
+                          ),
+                        );
                       },
-                      child: Image.asset(
-                        widget.image,
+                      child: CachedNetworkImage(
+                        imageUrl: widget.image,
                         height: 120,
                         width: double.infinity,
                         fit: BoxFit.cover,
+                        placeholder: (context, url) => Center(child: CircularProgressIndicator()), // Loading spinner
+                        errorWidget: (context, url, error) => Icon(Icons.broken_image, size: 60), // Fallback icon
                       ),
                     ),
                     Positioned(
@@ -188,12 +191,12 @@ class _ProductCardState extends State<ProductCard> {
                           width: 45,
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.8),
-                            shape: BoxShape.circle
+                            shape: BoxShape.circle,
                           ),
                           child: Image.asset("assets/cart.png"),
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -237,8 +240,10 @@ class _ProductCardState extends State<ProductCard> {
                         Text(widget.rating.toString()),
                         const Spacer(),
                         IconButton(
-                          icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, size: 20,
-                           color: isFavorite ?Colors.red :Colors.black,
+                          icon: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            size: 20,
+                            color: isFavorite ? Colors.red : Colors.black,
                           ),
                           onPressed: toggleFavorite,
                         ),
@@ -254,12 +259,3 @@ class _ProductCardState extends State<ProductCard> {
     );
   }
 }
-
-//CachedNetworkImage(
-//                         imageUrl: widget.image,
-//                         height: 120,
-//                         width: double.infinity,
-//                         fit: BoxFit.cover,
-//                         placeholder: (context, url) => Center(child: CircularProgressIndicator()),
-//                         errorWidget: (context, url, error) => Icon(Icons.error),
-//                       )

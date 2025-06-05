@@ -1,10 +1,8 @@
-import 'package:chopdirect/screens/buyer/checkout.dart';
-import 'package:chopdirect/screens/buyer/payment_method.dart';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-
 import 'cart_item.dart';
+import 'payment_method.dart'; // Assuming checkout leads to payment
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -28,14 +26,13 @@ class CartScreen extends StatelessWidget {
     User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       return Scaffold(
+        appBar: AppBar(title: Text("Your Cart")),
         body: Center(child: Text("Please log in to view your cart.")),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Your Cart"),
-      ),
+      appBar: AppBar(title: Text("Your Cart")),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance.collection("cart")
             .where("userId", isEqualTo: currentUser.email)
@@ -45,6 +42,7 @@ class CartScreen extends StatelessWidget {
             return Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
+            print("Error fetching cart items: ${snapshot.error}");
             return Center(child: Text("Error loading cart: ${snapshot.error}"));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -53,7 +51,7 @@ class CartScreen extends StatelessWidget {
 
           List<QueryDocumentSnapshot<Map<String, dynamic>>> cartItems = snapshot.data!.docs;
 
-          // Calculate total price & total quantity
+          // Calculate total price & quantity
           double totalPrice = 0;
           int totalQuantity = 0;
           for (var doc in cartItems) {
@@ -65,6 +63,7 @@ class CartScreen extends StatelessWidget {
 
           return Column(
             children: [
+              // Cart Items List
               Expanded(
                 child: ListView(
                   children: cartItems.map((doc) {
@@ -80,7 +79,7 @@ class CartScreen extends StatelessWidget {
                 ),
               ),
 
-              // Total Price & Checkout Button
+              // Checkout Section
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -97,13 +96,9 @@ class CartScreen extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           print("Proceeding to checkout...");
-                          Navigator.push(context, MaterialPageRoute(builder: (context)=>
-                              PaymentMethod(subtotal: totalPrice,)
-                            //   CheckoutScreen(
-                            // subtotal: totalPrice,
-                            // )
-                           )
-                          );
+                          Navigator.push(context, MaterialPageRoute(
+                            builder: (context) => PaymentMethod(subtotal: totalPrice),
+                          ));
                         },
                         child: const Text("Checkout"),
                       ),
