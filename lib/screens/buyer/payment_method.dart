@@ -289,11 +289,16 @@ class _PaymentMethodState extends State<PaymentMethod> {
          children: [
            Center(child: Padding(
              padding: const EdgeInsets.only(top: 20.0),
-             child: Text("Complete Payment Via...",
-              style: TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.bold
-              ),
+             child: Row(
+               children: [
+                 IconButton(onPressed: ()=>Navigator.pop(context), icon: Icon(Icons.arrow_back)),
+                 Text("Complete Payment Via...",
+                  style: TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.bold
+                  ),
+                 ),
+               ],
              ),
            )),
            SizedBox(height: 40,),

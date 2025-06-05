@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class CartItem extends StatelessWidget {
@@ -26,11 +27,13 @@ class CartItem extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                image,
-                width: 80,
-                height: 80,
+              child: CachedNetworkImage(
+                imageUrl: image,
+                height: 120,
+                width: 100,
                 fit: BoxFit.cover,
+                placeholder: (context, url) => Center(child: CircularProgressIndicator()),
+                errorWidget: (context, url, error) => Icon(Icons.broken_image, size: 60),
               ),
             ),
             const SizedBox(width: 16),
@@ -54,7 +57,8 @@ class CartItem extends StatelessWidget {
                       const Spacer(),
                       GestureDetector(
                         onTap: () => onUpdateQuantity(-quantity),
-                          child: Image.asset("assets/delete.png",))
+                        child: Image.asset("assets/delete.png"),
+                      )
                     ],
                   ),
                 ],
