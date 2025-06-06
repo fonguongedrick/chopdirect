@@ -1,0 +1,2 @@
+C:/Users/MFIX/Downloads/fsdk/chopdirect/android/app/.cxx/Debug/4j3t15w2/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/MFIX/Downloads/fsdk/chopdirect/android/app/.cxx/Debug/4j3t15w2/armeabi-v7a/CMakeFiles/rebuild_cache.dir

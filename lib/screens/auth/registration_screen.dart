@@ -42,8 +42,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Position? _lastPosition;
   late String _userType;
 
-  // Track current registration step for farmers
-  int _currentStep = 0; // 0 = phone verification, 1 = pin setup, 2 = profile info
+  // Track verification state
+  bool _isVerified = false;
+  bool _pinSetupComplete = false;
+  int _currentStep = 0; // 0 = phone, 1 = pin, 2 = profile
 
   final List<String> _productTypes = ['Vegetables', 'Fruits', 'Grains', 'Livestock'];
 
@@ -59,6 +61,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     super.initState();
     _getFcmToken();
     _requestLocation();
+    _checkAuthState();
   }
 
   @override
@@ -75,6 +78,42 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     super.dispose();
   }
 
+  Future<void> _checkAuthState() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isVerified = prefs.getBool('${_phoneController.text}_verified') ?? false;
+      _pinSetupComplete = prefs.getBool('${_phoneController.text}_pin_complete') ?? false;
+
+      if (_isVerified && _pinSetupComplete) {
+        _currentStep = 2;
+      } else if (_isVerified) {
+        _currentStep = 1;
+      }
+    });
+  }
+
+  void _goToNextStep() {
+    bool isValid = true;
+
+    if (_currentStep == 0) {
+      isValid = _isVerified;
+    } else if (_currentStep == 1) {
+      isValid = _validatePin();
+    }
+
+    if (isValid && _currentStep < 2) {
+      setState(() => _currentStep++);
+    } else if (!isValid) {
+      _showSnackBar('Please complete the current step before continuing');
+    }
+  }
+
+  void _goToPreviousStep() {
+    if (_currentStep > 0) {
+      setState(() => _currentStep--);
+    }
+  }
+
   Future<void> _getFcmToken() async {
     try {
       final token = await FirebaseMessaging.instance.getToken();
@@ -88,9 +127,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   Future<void> _requestLocation() async {
     try {
-      final status = await Permission.location.request();
+      var status = await Permission.location.status;
+
+      if (!status.isGranted) {
+        status = await Permission.location.request();
+      }
+
       if (status.isGranted) {
         setState(() => _isLoading = true);
+
         final position = await Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.medium
         ).timeout(const Duration(seconds: 10));
@@ -100,22 +145,25 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             position.longitude
         );
 
+        if (!mounted) return;
+
         setState(() {
           _lastPosition = position;
           _location = placemarks.isNotEmpty
               ? '${placemarks.first.locality}, ${placemarks.first.administrativeArea}'
               : 'Lat: ${position.latitude.toStringAsFixed(4)}, Long: ${position.longitude.toStringAsFixed(4)}';
-          _isLoading = false;
         });
       } else {
         _showSnackBar('Location permission is required for registration');
       }
     } on TimeoutException {
-      setState(() => _isLoading = false);
       _showSnackBar('Location detection timed out');
     } catch (e) {
-      setState(() => _isLoading = false);
       _showSnackBar('Error getting location: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -151,10 +199,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Force SMS-only verification (disable web reCAPTCHA)
       await FirebaseAuth.instance.setSettings(
         appVerificationDisabledForTesting: false,
-        forceRecaptchaFlow: false, // This is the key change
+        forceRecaptchaFlow: false,
       );
 
       final formattedPhone = '+237${_phoneController.text.trim()}';
@@ -165,26 +212,30 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           await _signInWithCredential(credential);
         },
         verificationFailed: (e) {
-          setState(() => _isLoading = false);
-          _showSnackBar('Verification failed: ${e.message}');
+          if (mounted) {
+            setState(() => _isLoading = false);
+            _showSnackBar('Verification failed: ${e.message}');
+          }
         },
-        codeSent: (verificationId, _) {
-          setState(() {
-            _isLoading = false;
-            _isOtpSent = true;
-            _verificationId = verificationId;
-          });
-          // Show OTP input UI instead of redirecting
-          _showOtpInputDialog(); // Add this method
+        codeSent: (verificationId, forceResendingToken) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _isOtpSent = true;
+              _verificationId = verificationId;
+            });
+          }
+          _showOtpInputDialog();
         },
         codeAutoRetrievalTimeout: (verificationId) {
           _verificationId = verificationId;
         },
-        timeout: const Duration(seconds: 60),
       );
     } catch (e) {
-      setState(() => _isLoading = false);
-      _showSnackBar('Error: ${e.toString()}');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showSnackBar('Error: ${e.toString()}');
+      }
     }
   }
 
@@ -210,52 +261,59 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   Future<void> _signInWithCredential(PhoneAuthCredential credential) async {
     try {
+      setState(() => _isLoading = true);
       final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-      final user = userCredential.user;
-      if (user != null) {
-        // For farmers, move to PIN setup after OTP verification
-        if (_userType == 'farmer') {
-          setState(() {
-            _isLoading = false;
-            _currentStep = 1; // Move to PIN setup step
-          });
-        } else {
-          await _createUserProfile(user.uid);
-          Navigator.pushReplacementNamed(context, '/login');
-        }
+
+      if (userCredential.user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('${_phoneController.text}_verified', true);
+
+        setState(() {
+          _isVerified = true;
+          _isLoading = false;
+        });
+
+        _goToNextStep();
       }
     } catch (e) {
+      _showSnackBar('Verification failed: ${e.toString()}');
       setState(() => _isLoading = false);
-      _showSnackBar('Registration failed: $e');
     }
   }
 
-  Future<void> _setupPin() async {
-    if (_pinController.text.isEmpty || _pinController.text.length != 4) {
-      _showSnackBar('Please enter a 4-digit PIN');
-      return;
+  bool _validatePin() {
+    if (_pinController.text.isEmpty || _pinController.text.length != 5) {
+      _showSnackBar('Please enter a 5-digit PIN');
+      return false;
     }
 
     if (_pinController.text != _confirmPinController.text) {
       _showSnackBar('PINs do not match');
-      return;
+      return false;
     }
+
+    return true;
+  }
+
+  Future<void> _setupPin() async {
+    if (!_validatePin()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // Store the PIN securely (in production, use a more secure method like Firebase Functions)
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_pin_${_phoneController.text}', _pinController.text);
+      await prefs.setBool('${_phoneController.text}_pin_complete', true);
 
-      // Move to profile information step
       setState(() {
+        _pinSetupComplete = true;
         _isLoading = false;
-        _currentStep = 2;
       });
+
+      _goToNextStep();
     } catch (e) {
-      setState(() => _isLoading = false);
       _showSnackBar('Error setting up PIN: $e');
+      setState(() => _isLoading = false);
     }
   }
 
@@ -278,8 +336,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       await userCredential.user!.sendEmailVerification();
       await _createUserProfile(userCredential.user!.uid);
 
-      _showSnackBar('Registration successful!');
-      Navigator.pushReplacementNamed(context, '/home');
+      if (mounted) {
+        _showSnackBar('Registration successful!');
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Registration failed. Please try again.';
       if (e.code == 'weak-password') {
@@ -306,15 +366,44 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
+
       if (user != null) {
         await _createUserProfile(user.uid);
-        _showSnackBar('Registration successful!');
-        Navigator.pushReplacementNamed(context, '/pending_approval');
+
+        // Clear verification state
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('${_phoneController.text}_verified');
+        await prefs.remove('${_phoneController.text}_pin_complete');
+
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/pending_approval',
+                (route) => false,
+          );
+        }
       } else {
-        _showSnackBar('User not authenticated. Please try again.');
+        // Attempt silent re-authentication
+        final prefs = await SharedPreferences.getInstance();
+        if (prefs.getBool('${_phoneController.text}_verified')) {
+          final verificationId = prefs.getString('${_phoneController.text}_verification_id');
+          final smsCode = prefs.getString('${_phoneController.text}_sms_code');
+
+          if (verificationId != null && smsCode != null) {
+            final credential = PhoneAuthProvider.credential(
+              verificationId: verificationId,
+              smsCode: smsCode,
+            );
+
+            await _signInWithCredential(credential);
+            return;
+          }
+        }
+
+        _showSnackBar('Please complete phone verification first');
       }
     } catch (e) {
-      _showSnackBar('An unexpected error occurred: ${e.toString()}');
+      _showSnackBar('Registration failed: ${e.toString()}');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -329,7 +418,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     final batch = FirebaseFirestore.instance.batch();
 
-    // Create user document
     final userRef = FirebaseFirestore.instance.collection('users_chopdirect').doc(uid);
     batch.set(userRef, {
       'userId': uid,
@@ -346,11 +434,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       if (_userType == 'farmer') ...{
         'farmName': _farmNameController.text.trim(),
         'productType': _selectedProductType,
-        'hasPinAuth': true, // Mark that this user uses PIN authentication
+        'hasPinAuth': true,
       }
     });
 
-    // For farmers, create application record
     if (_userType == 'farmer') {
       final applicationRef = FirebaseFirestore.instance.collection('farmer_applications').doc();
       batch.set(applicationRef, {
@@ -370,12 +457,36 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     await batch.commit();
   }
 
+  Future<void> _resendOtp() async {
+    setState(() => _isLoading = true);
+    await _verifyPhoneNumber();
+  }
+
   void _showSnackBar(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
     }
+  }
+
+  Widget _buildFarmerStepControls() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        if (_currentStep > 0)
+          TextButton(
+            onPressed: _isLoading ? null : _goToPreviousStep,
+            child: const Text('BACK'),
+          ),
+        if (_currentStep == 0) const SizedBox(width: 48),
+        if (_currentStep < 2)
+          ElevatedButton(
+            onPressed: _isLoading ? null : _goToNextStep,
+            child: const Text('NEXT'),
+          ),
+      ],
+    );
   }
 
   Widget _buildFarmerPhoneVerification() {
@@ -391,7 +502,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           keyboardType: TextInputType.phone,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(9), // Ensures exactly 9 digits
+            LengthLimitingTextInputFormatter(9),
           ],
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -421,7 +532,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
           const SizedBox(height: 8),
           TextButton(
-            onPressed: _verifyPhoneNumber,
+            onPressed: _resendOtp,
             child: const Text("Resend OTP"),
           ),
         ],
@@ -436,6 +547,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ? const CircularProgressIndicator()
               : Text(_isOtpSent ? 'VERIFY OTP' : 'SEND OTP'),
         ),
+        const SizedBox(height: 24),
+        _buildFarmerStepControls(),
       ],
     );
   }
@@ -444,7 +557,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     return Column(
       children: [
         const Text(
-          'Set up a 4-digit PIN for quick login',
+          'Set up a 5-digit PIN for quick login',
           style: TextStyle(fontSize: 16),
         ),
         const SizedBox(height: 20),
@@ -464,14 +577,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           keyboardType: TextInputType.number,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(4),
+            LengthLimitingTextInputFormatter(5),
           ],
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter PIN';
             }
-            if (value.length != 4) {
-              return 'PIN must be 4 digits';
+            if (value.length != 5) {
+              return 'PIN must be 5 digits';
             }
             return null;
           },
@@ -493,7 +606,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           keyboardType: TextInputType.number,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(4),
+            LengthLimitingTextInputFormatter(5),
           ],
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -506,12 +619,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           },
         ),
         const SizedBox(height: 24),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _setupPin,
-          child: _isLoading
-              ? const CircularProgressIndicator()
-              : const Text('SETUP PIN & CONTINUE'),
-        ),
+        _buildFarmerStepControls(),
       ],
     );
   }
@@ -714,7 +822,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Gradient
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -784,7 +891,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
                                 const SizedBox(height: 16),
 
-                                // Login Link
                                 Center(
                                   child: TextButton(
                                     onPressed: _isLoading

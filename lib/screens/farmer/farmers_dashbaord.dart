@@ -14,9 +14,13 @@ class FarmerDashboardScreen extends StatefulWidget {
 }
 
 class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
-  String farmerName = "Njoh"; // Default name
+  String farmerName = "Farmer";
   int productCount = 0;
+  int orderCount = 0;
+  double averageRating = 0.0;
+  double totalEarnings = 0.0;
   bool isLoading = true;
+  List<Map<String, dynamic>> recentOrders = [];
 
   @override
   void initState() {
@@ -26,34 +30,124 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
 
   Future<void> _loadFarmerData() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      try {
-        // Get farmer details
-        final farmerDoc = await FirebaseFirestore.instance
-            .collection('users_chopdirect')
-            .doc(user.uid)
-            .get();
+    if (user == null) return;
 
-        if (farmerDoc.exists) {
-          setState(() {
-            farmerName = farmerDoc.data()?['name'] ?? "Farmer";
-          });
+    try {
+      // 1. Fetch farmer details
+      final farmerDoc = await FirebaseFirestore.instance
+          .collection('users_chopdirect')
+          .doc(user.uid)
+          .get();
+
+      if (farmerDoc.exists) {
+        setState(() {
+          farmerName = farmerDoc.data()?['name'] ?? "Farmer";
+        });
+      }
+
+      // 2. Fetch products count
+      final productsQuery = await FirebaseFirestore.instance
+          .collection('products')
+          .where('farmerId', isEqualTo: user.uid)
+          .get();
+
+      // 3. Fetch recent orders (last 2)
+      final ordersQuery = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('farmerId', isEqualTo: user.uid)
+          .orderBy('createdAt', descending: true)
+          .limit(2)
+          .get();
+
+      // 4. Calculate stats
+      double totalRatings = 0;
+      int ratingCount = 0;
+      List<Map<String, dynamic>> tempOrders = [];
+
+      for (var order in ordersQuery.docs) {
+        // Calculate earnings
+        totalEarnings += (order['totalAmount'] as num).toDouble();
+
+        // Get product names
+        List<String> productNames = [];
+        for (var item in order['items']) {
+          final productDoc = await FirebaseFirestore.instance
+              .collection('products')
+              .doc(item['productId'])
+              .get();
+          if (productDoc.exists) {
+            productNames.add('${productDoc['name']} (${item['quantity']}${item['unit']})');
+          }
         }
 
-        // Get product count
-        final productsQuery = await FirebaseFirestore.instance
-            .collection('products')
-            .where('farmerId', isEqualTo: user.uid)
+        // Get customer name
+        final customerDoc = await FirebaseFirestore.instance
+            .collection('users_chopdirect')
+            .doc(order['userId'])
             .get();
+        final customerName = customerDoc.exists ? customerDoc['name'] : 'Customer';
 
-        setState(() {
-          productCount = productsQuery.docs.length;
-          isLoading = false;
+        tempOrders.add({
+          'orderId': '#${order.id.substring(0, 8).toUpperCase()}',
+          'orderNumber': order.id,
+          'customer': customerName,
+          'items': productNames.join(', '),
+          'status': order['status'],
+          'date': _formatDate(order['createdAt'].toDate()),
+          'totalAmount': (order['totalAmount'] as num).toDouble(),
         });
-      } catch (e) {
-        setState(() => isLoading = false);
+
+        // Calculate average rating
+        if (order['rating'] != null) {
+          totalRatings += (order['rating'] as num).toDouble();
+          ratingCount++;
+        }
       }
+
+      // 5. Get total order count
+      final orderCountQuery = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('farmerId', isEqualTo: user.uid)
+          .count()
+          .get();
+
+      setState(() {
+        productCount = productsQuery.docs.length;
+        orderCount = orderCountQuery.count ?? 0; // Add null check here
+        averageRating = ratingCount > 0 ? totalRatings / ratingCount : 0.0;
+        recentOrders = tempOrders;
+        isLoading = false;
+      });
+
+    } catch (e) {
+      setState(() => isLoading = false);
+      debugPrint('Error loading farmer data: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading data: $e')),
+      );
     }
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    if (date.year == today.year &&
+        date.month == today.month &&
+        date.day == today.day) {
+      return 'Today, ${_formatTime(date)}';
+    } else if (date.year == yesterday.year &&
+        date.month == yesterday.month &&
+        date.day == yesterday.day) {
+      return 'Yesterday, ${_formatTime(date)}';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
+  String _formatTime(DateTime date) {
+    return '${date.hour}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -66,12 +160,11 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
             MaterialPageRoute(
               builder: (context) => const AddProductScreen(),
             ),
-          ).then((_) => _loadFarmerData()); // Refresh after adding product
+          ).then((_) => _loadFarmerData());
         },
         icon: const Icon(Icons.add),
         label: const Text("Add Product"),
         backgroundColor: Colors.green[800],
-        elevation: 4,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -105,7 +198,7 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Your farm is doing great!',
+                            'Your farm summary',
                             style: TextStyle(
                               color: Colors.grey[600],
                             ),
@@ -124,7 +217,7 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Stats cards
+            // Stats cards with real data
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -139,19 +232,19 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
                 ),
                 DashboardStatCard(
                   icon: Icons.receipt,
-                  value: '18',
+                  value: isLoading ? '...' : '$orderCount',
                   label: 'Orders',
                   color: Colors.blue,
                 ),
                 DashboardStatCard(
                   icon: Icons.star,
-                  value: '4.8',
+                  value: isLoading ? '...' : averageRating.toStringAsFixed(1),
                   label: 'Rating',
                   color: Colors.amber,
                 ),
                 DashboardStatCard(
                   icon: Icons.attach_money,
-                  value: 'XAF 245K',
+                  value: isLoading ? '...' : 'XAF ${totalEarnings.toStringAsFixed(0)}',
                   label: 'Earnings',
                   color: Colors.purple,
                 ),
@@ -191,7 +284,14 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
                   icon: Icons.local_shipping,
                   label: 'Process Orders',
                   color: Colors.blue,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FarmerOrdersScreen(),
+                      ),
+                    );
+                  },
                 ),
                 DashboardActionCard(
                   icon: Icons.bar_chart,
@@ -221,7 +321,7 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Recent orders
+            // Recent orders with real data
             const Text(
               'Recent Orders',
               style: TextStyle(
@@ -230,20 +330,18 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const FarmerOrderCard(
-              orderId: '#CD-1234',
-              customer: 'Nfon AShi.',
-              items: 'Tomatoes (2kg), Onions (1kg)',
-              status: 'Processing',
-              date: 'Today, 10:30 AM',
-            ),
-            const FarmerOrderCard(
-              orderId: '#CD-1233',
-              customer: 'Ngwa Joseph.',
-              items: 'Bananas (3 bunches)',
-              status: 'Shipped',
-              date: 'Yesterday, 2:15 PM',
-            ),
+            if (isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (recentOrders.isEmpty)
+              const Text('No recent orders')
+            else
+              ...recentOrders.map((order) => FarmerOrderCard(
+                orderId: order['orderId'],
+                customer: order['customer'],
+                items: order['items'],
+                status: order['status'],
+                date: order['date'], orderNumber: order['orderNumber'], totalAmount:order['totalAmount'],
+              )),
             const SizedBox(height: 8),
             OutlinedButton(
               onPressed: () {
@@ -263,7 +361,6 @@ class _FarmerDashboardScreenState extends State<FarmerDashboardScreen> {
   }
 }
 
-// Enhanced DashboardActionCard with color parameter
 class DashboardActionCard extends StatelessWidget {
   final IconData icon;
   final String label;

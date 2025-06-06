@@ -5,8 +5,13 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
+import 'models/product_model.dart';
+
 class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({super.key});
+  final DocumentSnapshot? productDoc; // For editing existing product
+  final Product? product; // Alternative product model
+
+  const AddProductScreen({super.key, this.productDoc, this.product});
 
   @override
   State<AddProductScreen> createState() => _AddProductScreenState();
@@ -14,15 +19,17 @@ class AddProductScreen extends StatefulWidget {
 
 class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _stockController = TextEditingController();
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _priceController;
+  late TextEditingController _stockController;
 
   String _selectedCategory = 'vegetables';
   String _selectedUnit = 'kg';
   File? _imageFile;
+  String? _existingImageUrl;
   bool _isLoading = false;
+  bool _isImageChanged = false;
 
   final List<String> _categories = [
     'vegetables',
@@ -33,14 +40,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
     'herbs'
   ];
 
-  final List<String> _units = [
-    'kg',
-    'g',
-    'bunch',
-    'piece',
-    'bag',
-    'liter'
-  ];
+  final List<String> _units = ['kg', 'g', 'bunch', 'piece', 'bag', 'liter'];
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize with product data (either from document or model)
+    final existingData = widget.productDoc?.data() as Map<String, dynamic>? ??
+        widget.product?.toMap() ?? {};
+
+    _nameController = TextEditingController(text: existingData['name'] ?? '');
+    _descriptionController = TextEditingController(
+        text: existingData['description'] ?? '');
+    _priceController = TextEditingController(
+        text: existingData['price']?.toString() ?? '');
+    _stockController = TextEditingController(
+        text: existingData['stock']?.toString() ?? '');
+    _selectedCategory = existingData['category'] ?? 'vegetables';
+    _selectedUnit = existingData['unit'] ?? 'kg';
+    _existingImageUrl = existingData['imageUrl'];
+  }
 
   @override
   void dispose() {
@@ -56,12 +76,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
+        _isImageChanged = true;
       });
     }
   }
 
   Future<String?> _uploadImage() async {
-    if (_imageFile == null) return null;
+    if (_imageFile == null) return _existingImageUrl;
 
     try {
       final storageRef = FirebaseStorage.instance
@@ -73,6 +94,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final snapshot = await uploadTask.whenComplete(() {});
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
+      if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to upload image: $e')),
       );
@@ -80,9 +102,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
-  Future<void> _submitProduct() async {
+  Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_imageFile == null) {
+
+    // Only require image for new products
+    if (isNewProduct && _imageFile == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select an image')),
       );
@@ -97,40 +122,60 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (user == null) throw Exception('User not logged in');
 
       final productData = {
-        'farmerId': user.uid,
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'price': double.parse(_priceController.text.trim()),
         'unit': _selectedUnit,
         'category': _selectedCategory,
         'stock': int.parse(_stockController.text.trim()),
-        'imageUrl': imageUrl,
-        'rating': 0,
-        'status': 'active',
-        'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      await FirebaseFirestore.instance.collection('products').add(productData);
+      // Add image URL if we have one
+      if (imageUrl != null) {
+        productData['imageUrl'] = imageUrl;
+      }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product added successfully!')),
-      );
-      Navigator.of(context).pop();
+      if (isNewProduct) {
+        // Add new product
+        productData['farmerId'] = user.uid;
+        productData['rating'] = 0;
+        productData['reviewCount'] = 0;
+        productData['status'] = 'active';
+        productData['createdAt'] = FieldValue.serverTimestamp();
+        await FirebaseFirestore.instance.collection('products').add(productData);
+      } else {
+        // Update existing product
+        final docRef = widget.productDoc?.reference ??
+            FirebaseFirestore.instance.collection('products').doc(widget.product?.id);
+        await docRef.update(productData);
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pop(true); // Return success
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error adding product: $e')),
+        SnackBar(
+          content: Text(isNewProduct
+              ? 'Error adding product: $e'
+              : 'Error updating product: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
+
+  bool get isNewProduct => widget.productDoc == null && widget.product == null;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Product'),
+        title: Text(isNewProduct ? 'Add New Product' : 'Edit Product'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -149,16 +194,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.grey),
                   ),
-                  child: _imageFile == null
-                      ? const Column(
+                  child: _imageFile != null
+                      ? Image.file(_imageFile!, fit: BoxFit.cover)
+                      : _existingImageUrl != null
+                      ? Image.network(_existingImageUrl!, fit: BoxFit.cover)
+                      : const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.add_a_photo, size: 50),
                       SizedBox(height: 8),
                       Text('Tap to add product image'),
                     ],
-                  )
-                      : Image.file(_imageFile!, fit: BoxFit.cover),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -209,6 +256,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         if (double.tryParse(value) == null) {
                           return 'Enter valid number';
                         }
+                        if (double.parse(value) <= 0) {
+                          return 'Price must be positive';
+                        }
                         return null;
                       },
                     ),
@@ -229,6 +279,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         if (int.tryParse(value) == null) {
                           return 'Enter valid number';
                         }
+                        if (int.parse(value) < 0) {
+                          return 'Stock cannot be negative';
+                        }
                         return null;
                       },
                     ),
@@ -247,7 +300,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 items: _categories.map((category) {
                   return DropdownMenuItem(
                     value: category,
-                    child: Text(category.capitalize()),
+                    child: Text(
+                      category[0].toUpperCase() + category.substring(1),
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -281,16 +336,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
               // Submit Button
               ElevatedButton(
-                onPressed: _isLoading ? null : _submitProduct,
+                onPressed: _isLoading ? null : _submitForm,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: Theme.of(context).primaryColor,
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                  'Add Product',
-                  style: TextStyle(fontSize: 16,color: Colors.white),
+                    : Text(
+                  isNewProduct ? 'Add Product' : 'Update Product',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
@@ -301,8 +359,3 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 }
 
-extension StringExtension on String {
-  String capitalize() {
-    return "${this[0].toUpperCase()}${substring(1)}";
-  }
-}

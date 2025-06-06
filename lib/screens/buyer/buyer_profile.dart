@@ -16,8 +16,8 @@ class BuyerProfileScreen extends StatefulWidget {
 class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
   final User? currentUser = FirebaseAuth.instance.currentUser;
   String userLocation = "Fetching location...";
+  bool _isLoggingOut = false;
 
-  // Function to get user's current location using geolocator and geocoding
   Future<void> getUserLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -56,6 +56,30 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
     }
   }
 
+  Future<void> _signOut() async {
+    setState(() => _isLoggingOut = true);
+    try {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+              (Route<dynamic> route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Logout failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => _isLoggingOut = false);
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -64,7 +88,6 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Ensure that the user is logged in.
     if (currentUser == null) {
       return Scaffold(
         appBar: AppBar(title: const Text("Profile")),
@@ -72,10 +95,9 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
       );
     }
 
-    // Use a StreamBuilder with a query since we're using auto-generated document IDs.
     return Scaffold(
       appBar: AppBar(
-        leading: Container(), // Empty container to remove the default back button.
+        leading: Container(),
         title: const Text(
           "Profile",
           style: TextStyle(
@@ -99,33 +121,28 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
             return const Center(child: Text("No user data available."));
           }
 
-          // Retrieve the first matching document.
           Map<String, dynamic> user = snapshot.data!.docs.first.data();
           int loyaltyPoints = user["loyaltyPoints"] ?? 0;
 
-          // Level thresholds.
           const int silverThreshold = 500;
           const int goldenThreshold = 5000;
 
           String currentLevel;
-          double progressValue; // Value for the LinearProgressIndicator (0.0 to 1.0)
-          String progressLabel; // Text to show progress within the current level
+          double progressValue;
+          String progressLabel;
 
           if (loyaltyPoints < silverThreshold) {
-            // Silver level: progress from 0 to 500 points.
             currentLevel = "Silver Farmer";
             progressValue = loyaltyPoints / silverThreshold;
             int progressPercent = (progressValue * 100).round();
             progressLabel = "$progressPercent% progress";
           } else if (loyaltyPoints < goldenThreshold) {
-            // Golden level: reset progress starting at 500.
             currentLevel = "Golden Farmer";
-            int pointsForGolden = goldenThreshold - silverThreshold; // 4500 points required.
+            int pointsForGolden = goldenThreshold - silverThreshold;
             progressValue = (loyaltyPoints - silverThreshold) / pointsForGolden;
             int progressPercent = (progressValue * 100).round();
             progressLabel = "$progressPercent% progress";
           } else {
-            // Special Buyer: maximum level reached.
             currentLevel = "Special Buyer";
             progressValue = 1.0;
             progressLabel = "Max level achieved";
@@ -150,7 +167,7 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                 Text(userLocation),
                 const SizedBox(height: 24),
 
-                // Loyalty Points Card using dynamic data from Firestore.
+                // Loyalty Points Card
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -167,13 +184,13 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                           ],
                         ),
                         const Divider(),
-                           Row(
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Current Level'),
+                            const Text('Current Level'),
                             Text(
                               currentLevel,
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -184,15 +201,13 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                           color: Theme.of(context).primaryColor,
                         ),
                         const SizedBox(height: 8),
-                        Center(
-                          child: Text(progressLabel)
-                        ),
+                        Center(child: Text(progressLabel)),
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
                             onPressed: () {
-                              // Implement redeem points functionality here.
+                              // Implement redeem points functionality
                             },
                             child: const Text('Redeem Points'),
                           ),
@@ -203,13 +218,13 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Profile Menu Items.
+                // Profile Menu Items
                 ProfileMenuItem(
                   icon: Icons.person,
                   title: 'Edit Profile',
                   onTap: () async {
                     final result = await Navigator.pushNamed(context, "/editProfile");
-                    if (result == true) {
+                    if (result == true && mounted) {
                       setState(() {});
                     }
                   },
@@ -232,14 +247,28 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
                 const ProfileMenuItem(icon: Icons.settings, title: 'Settings'),
                 const SizedBox(height: 16),
 
-                // Logout Button.
+                // Logout Button
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: () {
-                      // Implement log out functionality here.
-                    },
-                    child: const Text('Log Out'),
+                    onPressed: _isLoggingOut ? null : _signOut,
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isLoggingOut
+                        ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(),
+                    )
+                        : const Text(
+                      'Log Out',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ],

@@ -136,12 +136,12 @@ class _ProductOverviewState extends State<ProductOverview> {
                   ),
                  ),
                  Spacer(),
-                 // Text("From: ${widget.farmer}",
-                 //  style: TextStyle(
-                 //    fontSize: 20,
-                 //    fontWeight: FontWeight.bold
-                 //  ),
-                 // )
+                 Text("From: ${widget.farmer}",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold
+                  ),
+                 )
                ],
              ),
            ),
