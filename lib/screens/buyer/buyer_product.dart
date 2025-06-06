@@ -5,16 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:chopdirect/screens/buyer/cards/product_card.dart';
 import 'package:chopdirect/screens/buyer/product_grid_item.dart';
 import 'package:chopdirect/screens/buyer/section_headers.dart';
-
 import 'cards/farmers_card.dart';
 
-// Function to fetch products as a stream from Firestore
+// Function to fetch products from Firestore as a stream
 Stream<List<Map<String, dynamic>>> fetchProducts() {
   return FirebaseFirestore.instance
       .collection('products')
       .snapshots()
       .map((snapshot) =>
-      snapshot.docs.map((doc) => doc.data()).toList());
+      snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList());
 }
 
 class BuyerProductsScreen extends StatefulWidget {
@@ -26,14 +25,18 @@ class BuyerProductsScreen extends StatefulWidget {
 
 class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
   int cartItemCount = 0;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
 
+  // When fetching the cart count, you currently use currentUser.email.
+  // Consider using currentUser.uid for consistency.
   void fetchCartItemCount() {
     User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
 
     FirebaseFirestore.instance
         .collection("cart")
-        .where("userId", isEqualTo: currentUser.email)
+        .where("userId", isEqualTo: currentUser.email) // Adjust if needed
         .snapshots()
         .listen((snapshot) {
       if (mounted) {
@@ -56,13 +59,35 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
   void initState() {
     super.initState();
     fetchCartItemCount();
+    // Listen to search field changes
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Local helper: filter products by search query (by product name)
+  List<Map<String, dynamic>> _filterProducts(
+      List<Map<String, dynamic>> products, String query) {
+    if (query.isEmpty) return products;
+    return products.where((product) {
+      final prodName = (product["name"] ?? "").toString().toLowerCase();
+      return prodName.contains(query.toLowerCase());
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "CHOPDIRECT",
           style: TextStyle(
             color: Colors.white,
@@ -76,8 +101,8 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
               GestureDetector(
                 onTap: () {
                   Navigator.push(
-                      context, MaterialPageRoute(builder: (context) => CartScreen()
-                   )
+                      context,
+                      MaterialPageRoute(builder: (context) => const CartScreen())
                   );
                 },
                 child: Container(
@@ -123,11 +148,12 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: TextField(
+                controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search...',
+                  hintText: 'Search by product name...',
                   prefixIcon: Image.asset("assets/search.png"),
                   filled: true,
-                  fillColor: Color(0xffE9EAEB),
+                  fillColor: const Color(0xffE9EAEB),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.transparent),
@@ -146,9 +172,11 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
               stream: fetchProducts(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 }
                 List<Map<String, dynamic>> products = snapshot.data!;
+                // Filter products based on search query
+                products = _filterProducts(products, _searchQuery);
                 return SizedBox(
                   height: 220,
                   child: ListView(
@@ -175,9 +203,21 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: const [
-                  FarmCard(name: 'Njoh Farm', distance: '2.5 km', products: 'Tomatoes, Peppers, Onions', image: 'assets/farm1.jpeg'),
-                  FarmCard(name: 'Mbu Farm', distance: '3.1 km', products: 'Bananas, Plantains', image: 'assets/farm2.jpeg'),
-                  FarmCard(name: 'Ndi Farm', distance: '5.2 km', products: 'Beans, Maize', image: 'assets/farm3.jpeg'),
+                  FarmCard(
+                      name: 'Njoh Farm',
+                      distance: '2.5 km',
+                      products: 'Tomatoes, Peppers, Onions',
+                      image: 'assets/farm1.jpeg'),
+                  FarmCard(
+                      name: 'Mbu Farm',
+                      distance: '3.1 km',
+                      products: 'Bananas, Plantains',
+                      image: 'assets/farm2.jpeg'),
+                  FarmCard(
+                      name: 'Ndi Farm',
+                      distance: '5.2 km',
+                      products: 'Beans, Maize',
+                      image: 'assets/farm3.jpeg'),
                 ],
               ),
             ),
@@ -187,9 +227,11 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
               stream: fetchProducts(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 }
                 List<Map<String, dynamic>> products = snapshot.data!;
+                // Filter products based on search query
+                products = _filterProducts(products, _searchQuery);
                 return GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),

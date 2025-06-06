@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "thunt-79e7b"
-  }
+    "default": "chopdirect-bbdb5",
+    "chopdirect": "chopdirect-bbdb5"
+  },
+  "targets": {},
+  "etags": {}
 }

@@ -48,7 +48,7 @@ class _PendingOrderState extends State<PendingOrder> {
           margin: const EdgeInsets.symmetric(vertical: 8),
           child: ListTile(
             title: Text('Order #${order.id.substring(0, 8)}'),
-            subtitle: Text('Total: ${data['totalAmount']?.toStringAsFixed(2)} XAF'),
+            subtitle: Text('Total: ${data['totalAmount'] is num ? (data['totalAmount'] as num).toStringAsFixed(2) : 'Invalid'} XAF'),
             trailing: Chip(
               label: Text("Pending", style: const TextStyle(color: Colors.orange)),
               backgroundColor: Colors.orange.withOpacity(0.2),

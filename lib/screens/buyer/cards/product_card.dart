@@ -29,6 +29,8 @@ class ProductCard extends StatefulWidget {
 }
 
 class _ProductCardState extends State<ProductCard> {
+  bool isFavorite = false;
+
   void addToCart() async {
     User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
@@ -36,12 +38,13 @@ class _ProductCardState extends State<ProductCard> {
       return;
     }
 
-    // Query all cart items for the current user.
+    // Query all cart items for the current user using UID.
     QuerySnapshot cartSnapshot = await FirebaseFirestore.instance
         .collection("cart")
-        .where("userId", isEqualTo: currentUser.email)
+        .where("userId", isEqualTo: currentUser.uid)
         .get();
 
+    // If there are existing cart items, check that the farmer value is consistent.
     if (cartSnapshot.docs.isNotEmpty) {
       String existingFarmer = cartSnapshot.docs.first['farmer'];
       if (existingFarmer != widget.farmer) {
@@ -67,10 +70,10 @@ class _ProductCardState extends State<ProductCard> {
       }
     }
 
-    // Either the cart is empty or the farmer matches; proceed to add/update the product.
+    // Use UID and product name to create a unique document key.
     DocumentReference cartRef = FirebaseFirestore.instance
         .collection("cart")
-        .doc("${currentUser.email}_${widget.name}");
+        .doc("${currentUser.uid}_${widget.name}");
 
     DocumentSnapshot cartItem = await cartRef.get();
 
@@ -81,20 +84,18 @@ class _ProductCardState extends State<ProductCard> {
       });
     } else {
       await cartRef.set({
-        "userId": currentUser.email,
+        "userId": currentUser.uid, // Using UID
         "name": widget.name,
         "price": widget.price,
         "imageUrl": widget.image,
-        "quantity": 1, // Default quantity
-        "farmer": widget.farmer, // Store the product's farmer
+        "quantity": 1, // Default quantity is 1
+        "farmer": widget.farmer,
       });
     }
 
     widget.updateCartBadge();
     print("${widget.name} added to cart!");
   }
-
-  bool isFavorite = false;
 
   void toggleFavorite() async {
     User? currentUser = FirebaseAuth.instance.currentUser;
@@ -105,13 +106,13 @@ class _ProductCardState extends State<ProductCard> {
 
     DocumentReference favRef = FirebaseFirestore.instance
         .collection("favorites")
-        .doc("${currentUser.email}_${widget.name}");
+        .doc("${currentUser.uid}_${widget.name}");
 
     if (isFavorite) {
       await favRef.delete();
     } else {
       await favRef.set({
-        "userId": currentUser.email,
+        "userId": currentUser.uid, // Using UID
         "name": widget.name,
         "price": widget.price,
         "imageUrl": widget.image,
@@ -127,7 +128,9 @@ class _ProductCardState extends State<ProductCard> {
     User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
 
-    DocumentReference favRef = FirebaseFirestore.instance.collection("favorites").doc("${currentUser.email}_${widget.name}");
+    DocumentReference favRef = FirebaseFirestore.instance
+        .collection("favorites")
+        .doc("${currentUser.uid}_${widget.name}");
 
     DocumentSnapshot doc = await favRef.get();
     setState(() {
@@ -152,7 +155,8 @@ class _ProductCardState extends State<ProductCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(12)),
                 child: Stack(
                   children: [
                     GestureDetector(
@@ -177,8 +181,10 @@ class _ProductCardState extends State<ProductCard> {
                         height: 120,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => Center(child: CircularProgressIndicator()), // Loading spinner
-                        errorWidget: (context, url, error) => Icon(Icons.broken_image, size: 60), // Fallback icon
+                        placeholder: (context, url) =>
+                        const Center(child: CircularProgressIndicator()),
+                        errorWidget: (context, url, error) =>
+                        const Icon(Icons.broken_image, size: 60),
                       ),
                     ),
                     Positioned(
@@ -236,12 +242,15 @@ class _ProductCardState extends State<ProductCard> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.star, color: Colors.amber, size: 16),
+                        const Icon(Icons.star,
+                            color: Colors.amber, size: 16),
                         Text(widget.rating.toString()),
                         const Spacer(),
                         IconButton(
                           icon: Icon(
-                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            isFavorite
+                                ? Icons.favorite
+                                : Icons.favorite_border,
                             size: 20,
                             color: isFavorite ? Colors.red : Colors.black,
                           ),

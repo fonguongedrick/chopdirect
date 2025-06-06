@@ -123,7 +123,10 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                   ),
                   const SizedBox(height: 20),
                   GestureDetector(
-                    onTap: _cancelOrder,
+                    onTap: (){
+                      _cancelOrder();
+                      Navigator.pop(context);
+                    },
                     child: Container(
                       height: 53,
                       width: screenWidth,
