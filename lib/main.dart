@@ -102,6 +102,10 @@ class ChopDirectApp extends StatelessWidget {
     farmerId: args['farmerId'],
     farmName: args['farmName'],
     );},
+        // '/checkout': (context) => const CheckoutScreen(),
+        "/editProfile": (context) => BuyerEditProfile(),
+        // "/checkout": (context) => const CheckoutScreen(),
+        "/notifications": (context) => const Notifications(),
       },
     );
   }
