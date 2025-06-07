@@ -349,18 +349,7 @@ class _PaymentMethodState extends State<PaymentMethod> {
   void sendOrderNotification() {
     FirebaseMessaging.instance.subscribeToTopic("order_updates");
 
-    // Simulate receiving a notification in-app
-    notificationsList.insert(0, RemoteMessage(
-        notification: RemoteNotification(
-          title: "Order Successful!",
-          body: "Your order has been placed successfully.",
-        ),
-        data: {"screen": "order_details"}
-    ));
-    notificationsNotifier.value = List.from(notificationsList);
-    unreadNotifier.value = true;
-
-    debugPrint("Order notification simulated locally!");
+    
   }
 
   @override

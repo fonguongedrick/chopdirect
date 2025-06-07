@@ -4,6 +4,7 @@ import 'package:chopdirect/screens/buyer/buyer_leaderboard.dart';
 import 'package:chopdirect/screens/buyer/buyer_product.dart';
 import 'package:chopdirect/screens/buyer/buyer_profile.dart';
 import 'package:chopdirect/screens/buyer/notifications.dart';
+import 'package:chopdirect/screens/buyer/orders.dart';
 import 'package:flutter/material.dart';
 
 class BuyerHomeScreen extends StatefulWidget {
@@ -19,8 +20,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   Key notificationsKey = UniqueKey();
   final List<Widget> _pages = [
     const BuyerProductsScreen(),
+    const OrdersScreen(),
     const BuyerLeaderboardScreen(),
-     Notifications(),
+    //  Notifications(),
     BuyerProfileScreen(),
   ];
 
@@ -30,11 +32,13 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       case 0:
         return const BuyerProductsScreen();
       case 1:
-        return const BuyerLeaderboardScreen();
+        return const OrdersScreen();
+      // case 2:
+      //   return Notifications(key: notificationsKey); // Use your dynamic key here
       case 2:
-        return Notifications(key: notificationsKey); // Use your dynamic key here
+        return BuyerLeaderboardScreen();
       case 3:
-        return BuyerProfileScreen();
+        return BuyerProfileScreen();  
       default:
         return const BuyerProductsScreen();
     }
@@ -61,14 +65,15 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _buildNavItem("assets/home.png", "Home", 0),
-            _buildNavItem("assets/board.png", "Leaderboard", 1),
+            _buildNavItem("assets/board.png", "Orders", 1),
+             _buildNavItem("assets/board.png", "Learderboard", 2),
             // Wrap the Notifications nav item with ValueListenableBuilder:
-            ValueListenableBuilder(
-              valueListenable: FirebaseApi.unreadNotifier,
-              builder: (context, bool hasUnread, _) {
-                return _buildNavItem("assets/notifications.png", "Notifications", 2, showDot: hasUnread);
-              },
-            ),
+            // ValueListenableBuilder(
+            //   valueListenable: FirebaseApi.unreadNotifier,
+            //   builder: (context, bool hasUnread, _) {
+            //     return _buildNavItem("assets/notifications.png", "Notifications", 2, showDot: hasUnread);
+            //   },
+            // ),
             _buildNavItem("assets/profile.png", "Profile", 3),
           ],
         ),
@@ -82,9 +87,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         setState(() {
           _currentIndex = index;
           if (index == 2) {
-            // When the Notifications tab is opened, mark notifications as read.
-            FirebaseApi.hasUnreadNotifications = false;
-            FirebaseApi.unreadNotifier.value = false;
+            // // When the Notifications tab is opened, mark notifications as read.
+            // FirebaseApi.hasUnreadNotifications = false;
+            // FirebaseApi.unreadNotifier.value = false;
           }
         });
       },

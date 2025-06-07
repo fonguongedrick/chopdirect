@@ -30,7 +30,7 @@ void main() async {
 
   await Hive.initFlutter();
   await Hive.openBox("cart");
-  await FirebaseApi().initNotification();
+  // await FirebaseApi().initNotification();
 
   runApp(MultiProvider(
     providers: [
@@ -93,7 +93,7 @@ class ChopDirectApp extends StatelessWidget {
         // '/checkout': (context) => const CheckoutScreen(),
         "/editProfile": (context) => BuyerEditProfile(),
         // "/checkout": (context) => const CheckoutScreen(),
-        "/notifications": (context) => const Notifications(),
+       // "/notifications": (context) => const Notifications(),
       },
     );
   }
