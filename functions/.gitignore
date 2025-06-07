@@ -1,2 +1,2 @@
-../index/node_modules/
+node_modules/
 *.local
