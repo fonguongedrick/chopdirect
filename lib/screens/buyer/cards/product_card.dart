@@ -21,7 +21,7 @@ class ProductCard extends StatefulWidget {
     required this.image,
     required this.rating,
     this.stock,
-    required this.updateCartBadge,
+    required this.updateCartBadge, required Map<String, dynamic> product, required Null Function() onAddToCart,
   });
 
   @override

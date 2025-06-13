@@ -1,64 +1,105 @@
-// import 'package:firebase_messaging/firebase_messaging.dart';
-// import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../main.dart';
+import '../screens/buyer/buyer_home.dart';
 
-// import '../main.dart';
-// import '../screens/buyer/buyer_home.dart';
-// class FirebaseApi {
-//   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+class FirebaseApi {
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
-//   // List to store notifications
-//   static List<RemoteMessage> notificationsList = [];
+  static final List<RemoteMessage> notificationsList = [];
+  static final ValueNotifier<List<RemoteMessage>> notificationsNotifier =
+      ValueNotifier<List<RemoteMessage>>([]);
+  static final ValueNotifier<bool> unreadNotifier = ValueNotifier<bool>(false);
+  static bool hasUnreadNotifications = false;
 
-//   // ValueNotifier to inform listeners that the notifications list has changed
-//   static final ValueNotifier<List<RemoteMessage>> notificationsNotifier = ValueNotifier([]);
+  StreamSubscription<RemoteMessage>? _onMessageSub;
+  StreamSubscription<RemoteMessage>? _onMessageOpenedAppSub;
+  StreamSubscription<QuerySnapshot>? _orderStatusSub;
 
-//   // (Optional) Unread flag and notifier if you want a dot on the nav bar
-//   static bool hasUnreadNotifications = false;
-//   static final ValueNotifier<bool> unreadNotifier = ValueNotifier<bool>(false);
+  /// ✅ Initialize Notification Handling
+  Future<void> initNotification() async {
+    await _firebaseMessaging.requestPermission();
 
-//   Future<void> initNotification() async {
-//     await _firebaseMessaging.requestPermission();
+    // ✅ Subscribe to topic "order_updates"
+    await _firebaseMessaging.subscribeToTopic("order_updates");
 
-//     // Subscribe to topic
-//     FirebaseMessaging.instance.subscribeToTopic("order_updates");
+    // ✅ Listen for foreground notifications
+    _onMessageSub = FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      _addNotification(message);
+    });
 
-//     // Foreground notifications
-//     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-//       print("Foreground Notification: ${message.notification?.title}");
+    // ✅ Handle notifications tapped (background/terminated)
+    _onMessageOpenedAppSub =
+        FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      _addNotification(message);
+      _navigateToOrders();
+    });
 
-//       // Add the notification to the top of the list
-//       notificationsList.insert(0, message);
-//       notificationsNotifier.value = List.from(notificationsList);  // Force a new list for listeners
+    // ✅ Handle app opened via notification (terminated state)
+    final RemoteMessage? initialMessage =
+        await _firebaseMessaging.getInitialMessage();
+    if (initialMessage != null) {
+      _addNotification(initialMessage);
+      _navigateToOrders();
+    }
 
-//       // Mark as unread
-//       hasUnreadNotifications = true;
-//       unreadNotifier.value = true;
-//     });
+    // ✅ Firestore Listener: Order Status Updates
+    _orderStatusSub = FirebaseFirestore.instance
+        .collection('orders')
+        .where('status', isEqualTo: 'paid')
+        .snapshots()
+        .listen((QuerySnapshot snapshot) {
+      for (var doc in snapshot.docs) {
+        _sendPaymentNotification(doc);
+      }
+    });
+  }
 
-//     // When the notification is tapped in background/terminated states
-//     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-//       // Also add it to the list if desired
-//       notificationsList.insert(0, message);
-//       notificationsNotifier.value = List.from(notificationsList);
-//       hasUnreadNotifications = true;
-//       unreadNotifier.value = true;
+  /// ✅ Add notifications to list and update UI state
+  void _addNotification(RemoteMessage message) {
+    notificationsList.insert(0, message);
+    notificationsNotifier.value = List<RemoteMessage>.from(notificationsList);
+    hasUnreadNotifications = true;
+    unreadNotifier.value = true;
+  }
 
-//       navigatorKey.currentState?.push(MaterialPageRoute(
-//         builder: (context) => BuyerHomeScreen(initialIndex: 2),
-//       ));
-//     });
+  /// ✅ Navigate to Orders page when tapped
+  void _navigateToOrders() {
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(
+        builder: (context) => BuyerHomeScreen(initialIndex: 2),
+      ),
+    );
+  }
 
-//     FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
-//       if (message != null) {
-//         notificationsList.insert(0, message);
-//         notificationsNotifier.value = List.from(notificationsList);
-//         hasUnreadNotifications = true;
-//         unreadNotifier.value = true;
+  /// ✅ Trigger notification when payment status changes in Firestore
+  Future<void> _sendPaymentNotification(QueryDocumentSnapshot doc) async {
+    final String? fcmToken = doc['buyerFCMToken']; // Ensure buyer token is stored
+    if (fcmToken == null || fcmToken.isEmpty) return;
 
-//         navigatorKey.currentState?.push(MaterialPageRoute(
-//           builder: (context) => BuyerHomeScreen(initialIndex: 2),
-//         ));
-//       }
-//     });
-//   }
-// }
+    final message = RemoteMessage(
+      data: {
+        'orderId': doc.id,
+        'screen': 'order_details',
+      },
+      notification: RemoteNotification(
+        title: "🎉 Payment Successful!",
+        body: "Your payment of ${doc['total']} XAF is confirmed.",
+      ),
+    );
+
+    await FirebaseMessaging.instance.sendMessage(
+      to: fcmToken,
+      data: message.data.map((key, value) => MapEntry(key, value.toString())),
+    );
+  }
+
+  /// ✅ Cleanup resources to prevent memory leaks
+  void dispose() {
+    _onMessageSub?.cancel();
+    _onMessageOpenedAppSub?.cancel();
+    _orderStatusSub?.cancel();
+  }
+}

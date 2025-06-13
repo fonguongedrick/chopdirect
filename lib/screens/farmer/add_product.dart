@@ -52,7 +52,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -62,13 +62,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Future<String?> _uploadImage() async {
     if (_imageFile == null) return null;
-
     try {
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('product_images')
           .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
-
       final uploadTask = storageRef.putFile(_imageFile!);
       final snapshot = await uploadTask.whenComplete(() {});
       return await snapshot.ref.getDownloadURL();
@@ -128,175 +126,277 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add New Product'),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.green[800],
+        foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Product Image
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey),
-                  ),
-                  child: _imageFile == null
-                      ? const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_a_photo, size: 50),
-                      SizedBox(height: 8),
-                      Text('Tap to add product image'),
-                    ],
-                  )
-                      : Image.file(_imageFile!, fit: BoxFit.cover),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Product Name
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Product Name *',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter product name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Description
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-
-              // Price and Stock
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _priceController,
-                      decoration: const InputDecoration(
-                        labelText: 'Price (XAF) *',
-                        border: OutlineInputBorder(),
-                        prefixText: 'XAF ',
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Product Image
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.grey[300]!,
+                        width: 1.5,
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter price';
-                        }
-                        if (double.tryParse(value) == null) {
-                          return 'Enter valid number';
-                        }
-                        return null;
-                      },
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: _imageFile == null
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.add_photo_alternate,
+                                size: 54,
+                                color: Colors.green[300],
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Tap to add product image',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.green[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          )
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.file(
+                              _imageFile!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+
+                // Product Name
+                _buildLabel('Product Name'),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: _inputDecoration('e.g. Fresh Tomatoes'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter product name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 18),
+
+                // Description
+                _buildLabel('Description'),
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: _inputDecoration('Describe your product'),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 18),
+
+                // Price and Stock
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Price'),
+                          TextFormField(
+                            controller: _priceController,
+                            decoration: _inputDecoration('e.g. 1500', prefix: 'XAF '),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Enter price';
+                              }
+                              if (double.tryParse(value) == null) {
+                                return 'Enter valid number';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Stock'),
+                          TextFormField(
+                            controller: _stockController,
+                            decoration: _inputDecoration('e.g. 20'),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Enter stock';
+                              }
+                              if (int.tryParse(value) == null) {
+                                return 'Enter valid number';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
+                // Category Dropdown
+                _buildLabel('Category'),
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: _inputDecoration('Select category'),
+                  items: _categories.map((category) {
+                    return DropdownMenuItem(
+                      value: category,
+                      child: Text(
+                        category.capitalize(),
+                        style: TextStyle(
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 18),
+
+                // Unit Dropdown
+                _buildLabel('Unit'),
+                DropdownButtonFormField<String>(
+                  value: _selectedUnit,
+                  decoration: _inputDecoration('Select unit'),
+                  items: _units.map((unit) {
+                    return DropdownMenuItem(
+                      value: unit,
+                      child: Text(
+                        unit,
+                        style: TextStyle(
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedUnit = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 32),
+
+                // Submit Button
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _submitProduct,
+                  icon: _isLoading
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check_circle, color: Colors.white),
+                  label: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Text(
+                      _isLoading ? 'Adding...' : 'Add Product',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1.1,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _stockController,
-                      decoration: const InputDecoration(
-                        labelText: 'Stock *',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter stock';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Enter valid number';
-                        }
-                        return null;
-                      },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[800],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    elevation: 3,
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Category Dropdown
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: const InputDecoration(
-                  labelText: 'Category *',
-                  border: OutlineInputBorder(),
                 ),
-                items: _categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(category.capitalize()),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value!;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Unit Dropdown
-              DropdownButtonFormField<String>(
-                value: _selectedUnit,
-                decoration: const InputDecoration(
-                  labelText: 'Unit *',
-                  border: OutlineInputBorder(),
-                ),
-                items: _units.map((unit) {
-                  return DropdownMenuItem(
-                    value: unit,
-                    child: Text(unit),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedUnit = value!;
-                  });
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Submit Button
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submitProduct,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Theme.of(context).primaryColor,
-                ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                  'Add Product',
-                  style: TextStyle(fontSize: 16,color: Colors.white),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5, left: 2),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Colors.green[900],
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint, {String? prefix}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey[400]),
+      prefixText: prefix,
+      prefixStyle: TextStyle(
+        color: Colors.green[800],
+        fontWeight: FontWeight.bold,
+      ),
+      filled: true,
+      fillColor: Colors.grey[50],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.grey[300]!),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(
+          color: Colors.green[800]!,
+          width: 2,
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 }

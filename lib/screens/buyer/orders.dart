@@ -274,7 +274,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
   void _showOrderDetails(QueryDocumentSnapshot order) {
     final data = order.data() as Map<String, dynamic>;
     final items = data['items'] as List;
-    final date = (data['createdAt'] as Timestamp).toDate();
+    final date = (data['createdAt']).toDate();
     final formattedDate = DateFormat('MMM d, yyyy - h:mm a').format(date);
 
     showModalBottomSheet(

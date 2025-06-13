@@ -1,13 +1,15 @@
+import 'dart:convert';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mesomb/mesomb.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:chopdirect/screens/buyer/buyer_product.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+import 'package:chopdirect/models/cart_manager.dart';
 
 class DeliveryDetailsScreen extends StatefulWidget {
   final CartManager cartManager;
-
   const DeliveryDetailsScreen({Key? key, required this.cartManager}) : super(key: key);
 
   @override
@@ -18,15 +20,15 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
-  
+
   String _deliveryOption = 'home';
   String _selectedTimeSlot = 'morning';
   bool _isLoading = false;
 
-  // MeSomb credentials
-  final String _applicationKey = 'ca18f74eb0cae4f78efa647d881e133aa0fa3ca6';
-  final String _accessKey = '95aaab65-817a-447c-9d9e-401054db4a6f';
-  final String _secretKey = 'd84d3e2d-e751-4c20-b7ef-53021fb916a4';
+  // Replace with your actual MeSomb credentials
+  final String _applicationKey = '795ee41f78b16c24023a17ed94a90bf577b569c4';
+  final String _accessKey = '98af2657-3378-40e1-adfb-5b1017ffb25d';
+  final String _secretKey = 'bb817a20-d65a-4566-9d75-46381ff8c19f'; 
 
   @override
   void dispose() {
@@ -53,14 +55,10 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Delivery Option
               _buildSectionHeader('Delivery Method'),
               _buildDeliveryOptionCard('Home Delivery', 'home', Icons.home),
               _buildDeliveryOptionCard('Takeaway', 'takeaway', Icons.shopping_bag),
-              
               const SizedBox(height: 24),
-              
-              // Address
               _buildSectionHeader('Delivery Address'),
               TextFormField(
                 controller: _addressController,
@@ -68,24 +66,17 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
                   hintText: 'Enter your full address',
                   prefixIcon: Icon(Icons.location_on),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your address';
-                  }
-                  return null;
-                },
+                validator: (value) => (value == null || value.isEmpty)
+                    ? 'Please enter your address'
+                    : null,
                 maxLines: 2,
               ),
-              
               if (_deliveryOption == 'home') ...[
                 const SizedBox(height: 24),
                 _buildSectionHeader('Delivery Time'),
                 ..._buildTimeSlots(),
               ],
-              
               const SizedBox(height: 24),
-              
-              // Special Instructions
               _buildSectionHeader('Special Instructions (Optional)'),
               TextFormField(
                 controller: _notesController,
@@ -95,10 +86,7 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
                 ),
                 maxLines: 2,
               ),
-              
               const SizedBox(height: 32),
-              
-              // Order Summary
               _buildSectionHeader('Order Summary'),
               _buildOrderSummary(subtotal.toDouble(), deliveryFee.toDouble(), total.toDouble()),
             ],
@@ -112,16 +100,11 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF4CAF50),
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: _isLoading
               ? const CircularProgressIndicator(color: Colors.white)
-              : const Text(
-                  'Proceed to Payment',
-                  style: TextStyle(fontSize: 16),
-                ),
+              : const Text('Proceed to Payment', style: TextStyle(fontSize: 16)),
         ),
       ),
     );
@@ -130,13 +113,7 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -146,9 +123,7 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: _deliveryOption == value 
-              ? const Color(0xFF4CAF50) 
-              : Colors.grey.shade300,
+          color: _deliveryOption == value ? const Color(0xFF4CAF50) : Colors.grey.shade300,
           width: 1.5,
         ),
       ),
@@ -159,9 +134,9 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
           value: value,
           groupValue: _deliveryOption,
           activeColor: const Color(0xFF4CAF50),
-          onChanged: (String? value) {
+          onChanged: (String? newVal) {
             setState(() {
-              _deliveryOption = value!;
+              _deliveryOption = newVal!;
             });
           },
         ),
@@ -188,9 +163,7 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(
-          color: _selectedTimeSlot == value 
-              ? const Color(0xFF4CAF50) 
-              : Colors.grey.shade300,
+          color: _selectedTimeSlot == value ? const Color(0xFF4CAF50) : Colors.grey.shade300,
           width: 1,
         ),
       ),
@@ -200,9 +173,9 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
           value: value,
           groupValue: _selectedTimeSlot,
           activeColor: const Color(0xFF4CAF50),
-          onChanged: (String? value) {
+          onChanged: (String? newVal) {
             setState(() {
-              _selectedTimeSlot = value!;
+              _selectedTimeSlot = newVal!;
             });
           },
         ),
@@ -237,21 +210,16 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isTotal ? 16 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          Text(
-            '${amount.toInt()} XAF',
-            style: TextStyle(
-              fontSize: isTotal ? 18 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              color: isTotal ? const Color(0xFF4CAF50) : null,
-            ),
-          ),
+          Text(label,
+              style: TextStyle(
+                  fontSize: isTotal ? 16 : 14,
+                  fontWeight: isTotal ? FontWeight.bold : FontWeight.normal)),
+          Text('${amount.toInt()} XAF',
+              style: TextStyle(
+                fontSize: isTotal ? 18 : 14,
+                fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+                color: isTotal ? const Color(0xFF4CAF50) : null,
+              )),
         ],
       ),
     );
@@ -260,11 +228,8 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
   Future<void> _proceedToPayment() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
-    // Navigate to payment screen
     final paymentSuccess = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
@@ -278,16 +243,13 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
     );
 
     if (paymentSuccess == true) {
-      // Save order to Firebase
       await _saveOrderToFirebase();
-      
-      // Show success message
       _showSuccessDialog();
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _saveOrderToFirebase() async {
@@ -296,13 +258,15 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
 
     final orderData = {
       'userId': user.uid,
-      'items': widget.cartManager.items.map((item) => {
-        'productId': item.id,
-        'name': item.name,
-        'quantity': item.quantity,
-        'price': item.price,
-        'farmerId': item.farmerId,
-      }).toList(),
+      'items': widget.cartManager.items
+          .map((item) => {
+                'productId': item.id,
+                'name': item.name,
+                'quantity': item.quantity,
+                'price': item.price,
+                'farmerId': item.farmerId,
+              })
+          .toList(),
       'deliveryOption': _deliveryOption,
       'address': _deliveryOption == 'home' ? _addressController.text : null,
       'deliveryTime': _deliveryOption == 'home' ? _selectedTimeSlot : null,
@@ -310,51 +274,23 @@ class _DeliveryDetailsScreenState extends State<DeliveryDetailsScreen> {
       'subtotal': widget.cartManager.subtotal,
       'deliveryFee': _deliveryOption == 'home' ? 500 : 0,
       'total': widget.cartManager.subtotal + (_deliveryOption == 'home' ? 500 : 0),
-      'status': 'pending',
+      'status': 'paid',
       'createdAt': FieldValue.serverTimestamp(),
     };
 
-    // Save order
-    final orderRef = await FirebaseFirestore.instance.collection('orders').add(orderData);
-    
-    // Update user loyalty points (1 point per 1000 XAF)
-   // Calculate and update loyalty points
-try {
-  // Safely get total with null check and default to 0 if null
-  final totalAmount = orderData['total'] ?? 0;
-  
-  // Ensure totalAmount is treated as a number (double)
-  final numericTotal = totalAmount is num ? totalAmount : 0.0;
-  
-  // Calculate points (1 point per 1000 XAF, rounded down)
-  final pointsEarned = (numericTotal / 1000).floor();
+    // Save the order to Firestore.
+    await FirebaseFirestore.instance.collection('orders').add(orderData);
 
-  if (pointsEarned > 0) {
-    // Update user's loyalty points in Firestore
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .update({
-          'loyaltyPoints': FieldValue.increment(pointsEarned),
-          'lastEarnedPoints': FieldValue.serverTimestamp(),
-          'lastOrderAmount': numericTotal,
-        });
-    
-    // Log the points earned
-    debugPrint('User earned $pointsEarned loyalty points from order');
-  }
-} catch (e) {
-  debugPrint('Error updating loyalty points: $e');
-  // Consider adding error reporting here (e.g., Sentry, Crashlytics)
-}
+    // Do not call any client-side notification function.
+    // The Cloud Function will trigger on new order creation.
 
-    // Clear cart
+    // Clear the cart.
     widget.cartManager.clearCart();
   }
 
   void _showSuccessDialog() {
     final pointsEarned = ((widget.cartManager.subtotal + (_deliveryOption == 'home' ? 500 : 0)) / 1000).floor();
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -366,22 +302,15 @@ try {
             const Icon(Icons.check_circle, color: Colors.green, size: 60),
             const SizedBox(height: 16),
             const Text('Your order has been placed successfully.'),
-            
-              const SizedBox(height: 16),
-              Text(
-                'You earned $pointsEarned loyalty points!',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-            ],
-       
+            const SizedBox(height: 16),
+            Text('You earned $pointsEarned loyalty points!',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () {
-               Navigator.pushReplacementNamed(context, '/buyer');
+              Navigator.pushReplacementNamed(context, '/buyer');
             },
             child: const Text('Continue Shopping'),
           ),
@@ -415,6 +344,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String _statusMessage = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Ensure the device subscribes to the "order_updates" topic so that it can receive notifications.
+    FirebaseMessaging.instance.subscribeToTopic("order_updates");
+  }
+
+  @override
   void dispose() {
     _phoneController.dispose();
     super.dispose();
@@ -423,13 +359,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Payment'),
-      ),
+      appBar: AppBar(title: const Text('Payment')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Card(
               child: Padding(
@@ -438,14 +371,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   children: [
                     const Text('Total Amount', style: TextStyle(fontSize: 16)),
                     const SizedBox(height: 8),
-                    Text(
-                      '${widget.amount.toInt()} XAF',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
+                    Text('${widget.amount.toInt()} XAF',
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green)),
                   ],
                 ),
               ),
@@ -478,9 +405,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(
                   _statusMessage,
-                  style: TextStyle(
-                    color: _statusMessage.contains('success') ? Colors.green : Colors.red,
-                  ),
+                  style: TextStyle(color: _statusMessage.contains('success') ? Colors.green : Colors.red),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -506,27 +431,28 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
 
       final response = await payment.makeCollect(
-        amount: widget.amount,
-        service: 'MTN', // Replace with the appropriate service
+        amount:1, //widget.amount, // Use the actual payment amount.
+        service: 'MTN',
         payer: _phoneController.text,
         country: 'CM',
         currency: 'XAF',
         nonce: RandomGenerator.nonce(),
       );
-        
 
       if (response.isOperationSuccess()) {
         _statusMessage = 'Payment successful!';
-        Navigator.pop(context, true); // Return success
+        Navigator.pop(context, true); // Return success result to the previous screen.
       } else {
         _statusMessage = 'Payment failed: ${response.message}';
       }
     } catch (e) {
       _statusMessage = 'Error: $e';
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }

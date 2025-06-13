@@ -80,13 +80,16 @@ class CartScreen extends StatelessWidget {
                 child: ListView(
                   children: cartItems.map((doc) {
                     Map<String, dynamic> item = doc.data();
-                    return CartItem(
+                    return CartItemWidget(
                       name: item["name"],
                       price: item["price"],
                       quantity: item["quantity"],
                       image: item["imageUrl"],
                       onUpdateQuantity: (change) =>
                           updateQuantity(item["name"], item["quantity"], change),
+                      farmerId: item["farmerId"],
+                      imageUrl: item["imageUrl"],
+                      id: doc.id,
                     );
                   }).toList(),
                 ),
@@ -119,10 +122,11 @@ class CartScreen extends StatelessWidget {
                         onPressed: () {
                           print("Proceeding to checkout...");
                           Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      PaymentMethod(subtotal: totalPrice)));
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PaymentMethod(subtotal: totalPrice),
+                            ),
+                          );
                         },
                         child: const Text("Checkout"),
                       ),

@@ -44,6 +44,13 @@ dependencies:
   location: ^8.0.0
   carousel_slider: ^5.0.0
   flutter_rating_bar: ^4.0.1
+  twilio_flutter: ^0.9.0
+  pinput: ^5.0.1
+  flutter_animate: ^4.5.2
+  shimmer: ^3.0.0
+  googleapis: ^14.0.0
+  googleapis_auth: ^2.0.0
+  lottie: ^3.3.1
 
 dev_dependencies:
   flutter_test:

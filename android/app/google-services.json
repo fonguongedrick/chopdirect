@@ -7,20 +7,12 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:159314935593:android:541d7e6db86a9f5ee60138",
+        "mobilesdk_app_id": "1:159314935593:android:dc2553fb746943cae60138",
         "android_client_info": {
-          "package_name": "com.traitz.cdadmin"
+          "package_name": "com.example.delivery"
         }
       },
       "oauth_client": [
-        {
-          "client_id": "159314935593-g7qgd9k8or3njirko1847881840hnhge.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.traitz.cdadmin",
-            "certificate_hash": "29f494c2631b2d4bc316eb5708270793eb4ae1b2"
-          }
-        },
         {
           "client_id": "159314935593-5qmn1bm5hhges5st9qa8t0lq2p5ivf0r.apps.googleusercontent.com",
           "client_type": 3
@@ -39,10 +31,46 @@
               "client_type": 3
             },
             {
-              "client_id": "159314935593-o0gmmp49laf265u602it1r5o1ig43f6o.apps.googleusercontent.com",
+              "client_id": "159314935593-b2c008pa158or13bp3s1q3v8us8lvovu.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.example.chopdirect"
+                "bundle_id": "com.example.chopDirectDelivery"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:159314935593:android:541d7e6db86a9f5ee60138",
+        "android_client_info": {
+          "package_name": "com.traitz.cdadmin"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "159314935593-5qmn1bm5hhges5st9qa8t0lq2p5ivf0r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAELjbXchy9VBwO6yruxTlBs2S-2nHEJRc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "159314935593-5qmn1bm5hhges5st9qa8t0lq2p5ivf0r.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "159314935593-b2c008pa158or13bp3s1q3v8us8lvovu.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.chopDirectDelivery"
               }
             }
           ]
@@ -58,11 +86,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "159314935593-7o1mhseg1m0e0lg703t7ua07vumpr000.apps.googleusercontent.com",
+          "client_id": "159314935593-1244mihi6os7av5rau31gnjb4or4peor.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.traitz.chopdirect",
-            "certificate_hash": "29f494c2631b2d4bc316eb5708270793eb4ae1b2"
+            "certificate_hash": "237b5a5a5499f940c67742118f349853ce658864"
           }
         },
         {
@@ -83,10 +111,10 @@
               "client_type": 3
             },
             {
-              "client_id": "159314935593-o0gmmp49laf265u602it1r5o1ig43f6o.apps.googleusercontent.com",
+              "client_id": "159314935593-b2c008pa158or13bp3s1q3v8us8lvovu.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.example.chopdirect"
+                "bundle_id": "com.example.chopDirectDelivery"
               }
             }
           ]

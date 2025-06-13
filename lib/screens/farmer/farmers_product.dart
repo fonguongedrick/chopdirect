@@ -14,53 +14,44 @@ class FarmerProductsScreen extends StatefulWidget {
 class _FarmerProductsScreenState extends State<FarmerProductsScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  bool _isLoading = true;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.green[800],
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text(
+          'Add Product',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AddProductScreen(),
+            ),
+          ).then((_) => setState(() {}));
+        },
+      ),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 150,
+            expandedHeight: 160,
+            pinned: true,
+            backgroundColor: Colors.green[800],
             flexibleSpace: FlexibleSpaceBar(
               title: const Text('My Products', style: TextStyle(color: Colors.white)),
-              background: Image.asset(
-                'assets/farm_products.jpeg',
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
+              background: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'My Products',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Product'),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AddProductScreen(),
-                            ),
-                          ).then((_) => setState(() {})); // Refresh after adding
-                        },
-                      ),
-                    ],
+                  Image.asset(
+                    'assets/farm_products.jpeg',
+                    fit: BoxFit.cover,
                   ),
-                  const SizedBox(height: 16),
+                  Container(
+                    color: Colors.green.withOpacity(0.3),
+                  ),
                 ],
               ),
             ),
@@ -83,23 +74,16 @@ class _FarmerProductsScreenState extends State<FarmerProductsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.shopping_basket, size: 50, color: Colors.grey),
-                        const SizedBox(height: 16),
+                        Icon(Icons.shopping_basket, size: 60, color: Colors.green[200]),
+                        const SizedBox(height: 18),
                         const Text(
                           'No products found',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                          style: TextStyle(fontSize: 20, color: Colors.grey, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AddProductScreen(),
-                              ),
-                            );
-                          },
-                          child: const Text('Add your first product'),
+                        const SizedBox(height: 10),
+                        Text(
+                          "Tap '+' below to add your first product",
+                          style: TextStyle(color: Colors.green[700], fontSize: 15),
                         ),
                       ],
                     ),
@@ -107,26 +91,36 @@ class _FarmerProductsScreenState extends State<FarmerProductsScreen> {
                 );
               }
 
-              return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                    final product = snapshot.data!.docs[index];
-                    final data = product.data() as Map<String, dynamic>;
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final product = snapshot.data!.docs[index];
+                      final data = product.data() as Map<String, dynamic>;
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: FarmerProductCard(
-                        productId: product.id,
-                        name: data['name'] ?? 'Unnamed Product',
-                        price: 'XAF ${data['price']?.toStringAsFixed(0) ?? '0'}',
-                        stock: '${data['stock']?.toString() ?? '0'} ${data['unit'] ?? ''}',
-                        image: data['imageUrl'] ?? '',
-                        rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
-                        onDelete: () => _deleteProduct(product.id),
-                      ),
-                    );
-                  },
-                  childCount: snapshot.data!.docs.length,
+                      return Card(
+                        elevation: 3,
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: FarmerProductCard(
+                            productId: product.id,
+                            name: data['name'] ?? 'Unnamed Product',
+                            price: 'XAF ${data['price']?.toStringAsFixed(0) ?? '0'}',
+                            stock: '${data['stock']?.toString() ?? '0'} ${data['unit'] ?? ''}',
+                            image: data['imageUrl'] ?? '',
+                            rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
+                            onDelete: () => _deleteProduct(product.id),
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: snapshot.data!.docs.length,
+                  ),
                 ),
               );
             },
